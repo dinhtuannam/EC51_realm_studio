@@ -60,7 +60,7 @@ function createApp({ logger } = {}) {
   app.use(express.json({ limit: '50mb' }));
   app.use('/api', requestLogger(activeLogger), routes);
   // This tool's whole workflow is "edit public/*, then look at the browser" -
-  // any caching of index.html/app.js/style.css means a refresh can silently
+  // any caching of index.html/js/*.js/style.css means a refresh can silently
   // keep showing stale markup alongside fresh JS (or vice versa), which
   // looks exactly like "the button is there but does nothing". Disabling
   // etag/last-modified and forcing Cache-Control: no-store means every

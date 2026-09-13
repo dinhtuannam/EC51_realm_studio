@@ -1,6 +1,7 @@
 'use strict';
 
 const realmService = require('./realmService');
+const { toClientSchema, buildWriteValues } = require('./valueConversion');
 
 // RFC4180-ish CSV parser: handles quoted fields (commas/newlines inside
 // quotes), escaped "" for a literal quote, and CRLF or LF line endings.
@@ -118,7 +119,7 @@ function importCsv(className, csvContent, mode) {
 
   const realm = realmService.assertOpen();
   const objSchema = realmService.findSchema(className);
-  const clientSchema = realmService.toClientSchema(objSchema);
+  const clientSchema = toClientSchema(objSchema);
   const schemaColumnNames = new Set(clientSchema.properties.map((p) => p.name));
   const { headers, records } = parseCsv(csvContent);
   // Cột CSV không có trong table -> bỏ qua. Cột table không có trong CSV ->
@@ -150,7 +151,7 @@ function importCsv(className, csvContent, mode) {
       for (const propName of schemaColumnNames) {
         fields[propName] = Object.prototype.hasOwnProperty.call(record, propName) ? record[propName] : '';
       }
-      const values = realmService.buildWriteValues(objSchema, fields);
+      const values = buildWriteValues(objSchema, fields);
 
       if (primaryKey) {
         const csvProvidedPk = headers.includes(primaryKey) && record[primaryKey] !== '';

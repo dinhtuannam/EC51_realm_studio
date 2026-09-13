@@ -177,6 +177,19 @@
 
   <div id="toast-container"></div>
 
-  <script src="app.js"></script>
+  <!-- Thứ tự có ý nghĩa: mỗi file là 1 <script> cổ điển (không phải module),
+       cùng chia sẻ 1 global scope. core.js định nghĩa el()/state/api()/showX()
+       mà MỌI file khác gọi ngay ở top-level (addEventListener...), nên phải
+       load đầu tiên. main.js gọi openConnection() ngay khi chạy nên phải load
+       cuối cùng. Giữa 2 mốc đó, thứ tự không quan trọng - các file chỉ tham
+       chiếu hàm của nhau bên trong closure (event handler), được resolve lúc
+       người dùng thao tác, tức là sau khi toàn bộ script đã chạy xong. -->
+  <script src="js/core.js"></script>
+  <script src="js/sidebar.js"></script>
+  <script src="js/connection.js"></script>
+  <script src="js/table.js"></script>
+  <script src="js/editForm.js"></script>
+  <script src="js/importExport.js"></script>
+  <script src="js/main.js"></script>
 </body>
 </html>
