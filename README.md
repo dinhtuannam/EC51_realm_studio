@@ -58,6 +58,20 @@ Quy tắc map cột:
   sinh 1 id tăng dần mới thay vào — record gốc trùng id không bao giờ bị ghi
   đè bởi import.
 
+Nếu tên file được chọn có vẻ không khớp với table đang chọn (không trùng tên
+và không theo đúng quy ước tên file Export ở trên), tool sẽ cảnh báo trước khi
+import: với "Ghi đè", cảnh báo được thêm vào ngay dialog xác nhận xoá dữ liệu
+sẵn có; với "Thêm mới" (vốn không cần xác nhận gì), tool sẽ hiện thêm 1 dialog
+xác nhận riêng chỉ trong trường hợp này.
+
+## Xóa hàng loạt
+
+Mỗi dòng trong bảng dữ liệu có 1 checkbox ở đầu dòng; ô checkbox ở đầu cột
+(header) để chọn/bỏ chọn tất cả record đang hiển thị. Chọn xong, nút **Xóa đã
+chọn** hiện ra ở toolbar kèm số lượng đã chọn — bấm vào sẽ hỏi xác nhận rồi xóa
+toàn bộ record đã chọn. Lựa chọn tự động bị xóa mỗi khi bảng được tải lại từ
+đầu (đổi table, đổi filter, bấm Reload).
+
 ## Giới hạn đã biết
 
 - Chỉ hỗ trợ field kiểu đơn giản (string/int/double/bool/date/...). Field kiểu

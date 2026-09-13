@@ -323,6 +323,8 @@ th:last-child { border-top-right-radius: var(--radius); }
 tbody tr:hover { background: var(--bg-hover); }
 tbody tr:last-child td { border-bottom: none; }
 .row-actions { display: flex; gap: 4px; }
+.select-col { width: 1%; white-space: nowrap; }
+.select-col input[type="checkbox"], .row-select-checkbox { cursor: pointer; }
 
 .empty-cell { text-align: center; padding: 32px 12px; color: var(--text-muted); white-space: normal; }
 .empty-state {
@@ -417,7 +419,7 @@ tr.row-highlight { animation: row-highlight-fade 3s ease-in; }
   max-width: 100%;
   box-shadow: var(--shadow-lg);
 }
-#confirm-message { margin: 0 0 20px; font-size: 13px; line-height: 1.5; }
+#confirm-message { margin: 0 0 20px; font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
 .confirm-actions { display: flex; justify-content: flex-end; gap: 8px; }
 
 /* ---------- Error dialog (replaces the native alert()) ---------- */

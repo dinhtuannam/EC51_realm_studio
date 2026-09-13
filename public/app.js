@@ -33,6 +33,12 @@ const state = {
   // unrelated later reload (Reload button, filter change...) doesn't
   // re-highlight stale data.
   lastMutatedRef: null,
+  // __ref (as string) của các record đang được tick chọn để xóa hàng loạt.
+  // Luôn bị xóa sạch mỗi khi loadObjects() tải lại từ đầu (đổi class, đổi
+  // filter, reload...) vì tập record/index lúc đó đã khác - xem comment ở
+  // loadObjects(). Không bị xóa khi loadMoreObjects() nối thêm record, vì
+  // index của các record đã tải không đổi khi chỉ thêm record phía sau.
+  selectedRefs: new Set(),
 };
 
 const el = (id) => document.getElementById(id);
@@ -175,6 +181,7 @@ async function openConnection(filePath, encryptionKeyHex, { restoreFromUrl = fal
     state.offset = 0;
     state.editingRef = null;
     state.lastMutatedRef = null;
+    state.selectedRefs.clear();
     el('filter-input').value = '';
     el('toolbar').hidden = true;
     el('table-wrap').innerHTML = '';
@@ -300,6 +307,9 @@ async function loadObjects() {
   try {
     const data = await api('GET', `/api/objects/${encodeURIComponent(state.currentClass)}${buildObjectsQuery(0)}`);
     if (requestId !== loadRequestId) return; // đã có request mới hơn chạy sau; bỏ response cũ này
+    // Tải lại từ đầu (offset 0) nghĩa là tập record/index có thể đã khác so
+    // với lúc người dùng tick chọn - xóa lựa chọn cũ để tránh xóa nhầm record.
+    state.selectedRefs.clear();
     state.currentSchema = data.schema;
     state.rows = data.rows;
     state.total = data.total;
@@ -348,16 +358,44 @@ function emptyState(iconSvg, message) {
   return box;
 }
 
+function updateBulkDeleteUi() {
+  const count = state.selectedRefs.size;
+  el('bulk-delete').hidden = count === 0;
+  el('bulk-delete-count').textContent = String(count);
+}
+
+function selectedCountAmongRows() {
+  return state.rows.filter((r) => state.selectedRefs.has(String(r.__ref))).length;
+}
+
+function syncSelectAllCheckbox(selectAllCheckbox) {
+  const total = state.rows.length;
+  const selected = selectedCountAmongRows();
+  selectAllCheckbox.checked = total > 0 && selected === total;
+  selectAllCheckbox.indeterminate = selected > 0 && selected < total;
+  selectAllCheckbox.disabled = total === 0;
+}
+
 function renderTable() {
   const wrap = el('table-wrap');
   wrap.innerHTML = '';
   if (!state.currentSchema) {
     wrap.appendChild(emptyState(ICONS.database, 'Chọn 1 table ở sidebar để xem dữ liệu'));
+    updateBulkDeleteUi();
     return;
   }
   const table = document.createElement('table');
   const thead = document.createElement('thead');
   const headRow = document.createElement('tr');
+
+  const selectAllTh = document.createElement('th');
+  selectAllTh.className = 'select-col';
+  const selectAllCheckbox = document.createElement('input');
+  selectAllCheckbox.type = 'checkbox';
+  selectAllCheckbox.title = 'Chọn tất cả record đang hiển thị';
+  selectAllTh.appendChild(selectAllCheckbox);
+  headRow.appendChild(selectAllTh);
+
   for (const prop of state.currentSchema.properties) {
     const th = document.createElement('th');
     th.textContent = prop.name;
@@ -372,7 +410,7 @@ function renderTable() {
     const tr = document.createElement('tr');
     const td = document.createElement('td');
     td.className = 'empty-cell';
-    td.colSpan = state.currentSchema.properties.length + 1;
+    td.colSpan = state.currentSchema.properties.length + 2;
     td.textContent = state.filter
       ? 'Không có record nào phù hợp với filter hiện tại.'
       : 'Class này chưa có record nào.';
@@ -381,7 +419,24 @@ function renderTable() {
   }
   for (const row of state.rows) {
     const tr = document.createElement('tr');
-    tr.dataset.ref = String(row.__ref);
+    const refKey = String(row.__ref);
+    tr.dataset.ref = refKey;
+
+    const selectTd = document.createElement('td');
+    selectTd.className = 'select-col';
+    const rowCheckbox = document.createElement('input');
+    rowCheckbox.type = 'checkbox';
+    rowCheckbox.className = 'row-select-checkbox';
+    rowCheckbox.checked = state.selectedRefs.has(refKey);
+    rowCheckbox.addEventListener('change', () => {
+      if (rowCheckbox.checked) state.selectedRefs.add(refKey);
+      else state.selectedRefs.delete(refKey);
+      syncSelectAllCheckbox(selectAllCheckbox);
+      updateBulkDeleteUi();
+    });
+    selectTd.appendChild(rowCheckbox);
+    tr.appendChild(selectTd);
+
     for (const prop of state.currentSchema.properties) {
       const td = document.createElement('td');
       const value = row[prop.name];
@@ -416,11 +471,24 @@ function renderTable() {
   table.appendChild(tbody);
   wrap.appendChild(table);
 
+  syncSelectAllCheckbox(selectAllCheckbox);
+  selectAllCheckbox.addEventListener('change', () => {
+    const checked = selectAllCheckbox.checked;
+    for (const row of state.rows) {
+      const refKey = String(row.__ref);
+      if (checked) state.selectedRefs.add(refKey);
+      else state.selectedRefs.delete(refKey);
+    }
+    tbody.querySelectorAll('.row-select-checkbox').forEach((cb) => { cb.checked = checked; });
+    updateBulkDeleteUi();
+  });
+
   if (state.lastMutatedRef !== null) {
     const target = tbody.querySelector(`[data-ref="${CSS.escape(String(state.lastMutatedRef))}"]`);
     if (target) target.classList.add('row-highlight');
     state.lastMutatedRef = null;
   }
+  updateBulkDeleteUi();
 }
 
 el('apply-filter').addEventListener('click', () => {
@@ -502,6 +570,19 @@ const IMPORT_MODE_IDS = { append: 'import-mode-append', overwrite: 'import-mode-
 // vì "path", ta đọc thẳng NỘI DUNG file trong trình duyệt (file.text()) và
 // gửi content đó lên server để import, không cần biết path thật ở đâu.
 let importCsvContent = null;
+let importFileName = '';
+
+// Kiểm tra tên file có "khớp" với table đang chọn không, để cảnh báo trước
+// khi import nhầm file. Chấp nhận khớp chính xác (Person.csv) hoặc đúng quy
+// ước tên file mà chính tool này tạo ra khi Export (Person_20260913_...csv)
+// - bất kỳ tên nào khác đều coi là không khớp và cần cảnh báo.
+function fileNameMatchesTable(fileName, tableName) {
+  if (!fileName || !tableName) return true;
+  const base = fileName.replace(/\.[^./\\]+$/, '');
+  const lowerBase = base.toLowerCase();
+  const lowerTable = tableName.toLowerCase();
+  return lowerBase === lowerTable || lowerBase.startsWith(`${lowerTable}_`);
+}
 
 el('import-browse').addEventListener('click', () => {
   el('import-file-input').click();
@@ -511,10 +592,12 @@ el('import-file-input').addEventListener('change', async () => {
   const file = el('import-file-input').files[0];
   if (!file) return;
   el('import-file-name').textContent = file.name;
+  importFileName = file.name;
   try {
     importCsvContent = await file.text();
   } catch (err) {
     importCsvContent = null;
+    importFileName = '';
     el('import-file-name').textContent = 'Chưa chọn file';
     showError(`Không đọc được file: ${err.message}`);
   }
@@ -523,6 +606,7 @@ el('import-file-input').addEventListener('change', async () => {
 el('import-data').addEventListener('click', () => {
   if (!state.currentClass) return;
   importCsvContent = null;
+  importFileName = '';
   el('import-file-name').textContent = 'Chưa chọn file';
   el('import-file-input').value = ''; // để chọn lại đúng file cũ vẫn bắn 'change'
   el(IMPORT_MODE_IDS.append).checked = true;
@@ -544,13 +628,24 @@ el('import-confirm').addEventListener('click', async () => {
     return;
   }
   const mode = getCheckedRadioValue(IMPORT_MODE_IDS, 'append');
+  const nameMismatch = !fileNameMatchesTable(importFileName, state.currentClass);
+  const mismatchWarning = nameMismatch
+    ? `Tên file "${importFileName}" có vẻ KHÔNG khớp với table "${state.currentClass}" đang chọn. Vui lòng kiểm tra lại đúng file trước khi tiếp tục.`
+    : '';
   // "Ghi đè" xoá toàn bộ dữ liệu hiện có trước khi import - đây là thao tác
   // phá huỷ dữ liệu không thể hoàn tác trong tool này, nên bắt xác nhận
   // thêm 1 lần nữa (giống Delete), thay vì chỉ dựa vào việc chọn đúng radio.
+  // Khi tên file không khớp table, nối thêm cảnh báo vào chính dialog này
+  // thay vì hiện thêm 1 dialog riêng.
   if (mode === 'overwrite') {
-    const confirmed = await showConfirm(
-      `"Ghi đè" sẽ XÓA TOÀN BỘ dữ liệu hiện có trong table "${state.currentClass}" trước khi import từ file CSV. Bạn có chắc chắn muốn tiếp tục?`
-    );
+    let message = `"Ghi đè" sẽ XÓA TOÀN BỘ dữ liệu hiện có trong table "${state.currentClass}" trước khi import từ file CSV. Bạn có chắc chắn muốn tiếp tục?`;
+    if (mismatchWarning) message += `\n\n${mismatchWarning}`;
+    const confirmed = await showConfirm(message);
+    if (!confirmed) return;
+  } else if (mismatchWarning) {
+    // "Thêm mới" bình thường không cần xác nhận gì thêm - chỉ hiện dialog
+    // xác nhận riêng khi phát hiện tên file không khớp table.
+    const confirmed = await showConfirm(`${mismatchWarning}\n\nBạn có chắc chắn muốn tiếp tục import không?`);
     if (!confirmed) return;
   }
   const btn = el('import-confirm');
@@ -636,6 +731,10 @@ el('edit-cancel').addEventListener('click', () => {
   el('edit-overlay').hidden = true;
 });
 
+el('edit-overlay').addEventListener('click', (e) => {
+  if (e.target === el('edit-overlay')) el('edit-overlay').hidden = true;
+});
+
 el('edit-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const fieldsBox = el('edit-fields');
@@ -691,6 +790,47 @@ async function deleteRow(row) {
     showError(`Xóa thất bại: ${err.message}`);
   }
 }
+
+async function bulkDeleteSelected() {
+  const refs = Array.from(state.selectedRefs);
+  if (refs.length === 0) return;
+  const confirmed = await showConfirm(`Bạn có chắc muốn xóa ${refs.length} record đã chọn không?`);
+  if (!confirmed) return;
+
+  const hasPrimaryKey = !!(state.currentSchema && state.currentSchema.primaryKey);
+  // Class không có primaryKey: __ref là INDEX trong Results hiện tại. Xóa
+  // từ index LỚN xuống NHỎ, vì xóa 1 record làm các record phía SAU nó dồn
+  // index lên 1 - xóa index lớn trước thì index nhỏ hơn (chưa xử lý) không
+  // bị ảnh hưởng. Class có primaryKey thì thứ tự không quan trọng.
+  const orderedRefs = hasPrimaryKey ? refs : refs.slice().sort((a, b) => Number(b) - Number(a));
+  const query = state.filter ? `?filter=${encodeURIComponent(state.filter)}` : '';
+
+  const btn = el('bulk-delete');
+  btn.disabled = true;
+  let successCount = 0;
+  let firstError = null;
+  for (const ref of orderedRefs) {
+    try {
+      await api(
+        'DELETE',
+        `/api/objects/${encodeURIComponent(state.currentClass)}/${encodeURIComponent(ref)}${query}`
+      );
+      successCount += 1;
+    } catch (err) {
+      if (!firstError) firstError = err.message;
+    }
+  }
+  btn.disabled = false;
+  await loadObjects();
+  refreshOneClassCount(state.currentClass);
+  if (firstError) {
+    showError(`Đã xóa ${successCount}/${orderedRefs.length} record đã chọn. Lỗi khi xóa 1 record: ${firstError}`);
+  } else {
+    showToast(`Đã xóa ${successCount} record đã chọn thành công.`);
+  }
+}
+
+el('bulk-delete').addEventListener('click', bulkDeleteSelected);
 
 // Tự động mở lại file/key đã lưu (nếu có), để quay lại tool không cần
 // copy-paste lại đường dẫn và key.
