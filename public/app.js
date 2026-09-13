@@ -428,6 +428,55 @@ el('reload-table').addEventListener('click', async () => {
 
 el('new-record').addEventListener('click', () => openEditForm(null));
 
+const EXPORT_SCOPE_IDS = { current: 'export-scope-current', all: 'export-scope-all' };
+const EXPORT_FORMAT_IDS = { csv: 'export-format-csv', excel: 'export-format-excel', markdown: 'export-format-markdown' };
+
+function getCheckedRadioValue(idsByValue, fallback) {
+  for (const [value, id] of Object.entries(idsByValue)) {
+    if (el(id).checked) return value;
+  }
+  return fallback;
+}
+
+el('export-data').addEventListener('click', () => {
+  if (!state.currentClass) return;
+  const hasFilter = !!state.filter;
+  const currentRadio = el(EXPORT_SCOPE_IDS.current);
+  const allRadio = el(EXPORT_SCOPE_IDS.all);
+  currentRadio.disabled = !hasFilter;
+  // Không có filter thì "Dữ liệu hiện tại" vô nghĩa (giống hệt "toàn bộ") -
+  // khoá lại và tự chọn "Toàn bộ dữ liệu"; có filter thì mặc định chọn
+  // "Dữ liệu hiện tại" vì đó là thứ người dùng đang thực sự nhìn thấy.
+  currentRadio.checked = hasFilter;
+  allRadio.checked = !hasFilter;
+  el('export-overlay').hidden = false;
+});
+
+el('export-cancel').addEventListener('click', () => {
+  el('export-overlay').hidden = true;
+});
+
+el('export-overlay').addEventListener('click', (e) => {
+  if (e.target === el('export-overlay')) el('export-overlay').hidden = true;
+});
+
+el('export-confirm').addEventListener('click', async () => {
+  const scope = getCheckedRadioValue(EXPORT_SCOPE_IDS, 'all');
+  const format = getCheckedRadioValue(EXPORT_FORMAT_IDS, 'csv');
+  const filter = scope === 'current' ? state.filter : '';
+  const btn = el('export-confirm');
+  btn.disabled = true;
+  try {
+    const result = await api('POST', `/api/objects/${encodeURIComponent(state.currentClass)}/export`, { filter, format });
+    el('export-overlay').hidden = true;
+    showToast(`Đã export thành công: ${result.fileName} (${result.rowCount} record).`);
+  } catch (err) {
+    showError(`Export thất bại: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
 function openEditForm(sourceRow, { duplicate = false } = {}) {
   const isEditingExisting = !!sourceRow && !duplicate;
   state.editingRef = isEditingExisting ? sourceRow.__ref : null;

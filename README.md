@@ -25,6 +25,18 @@ Mỗi lần chạy `npm start` sẽ tạo 1 file log riêng trong thư mục `lo
 realm-core khi có. Nếu gặp lỗi, gửi kèm nội dung file log gần nhất để tra
 cứu nhanh hơn thay vì phải tái hiện lại lỗi.
 
+## Export
+
+Nút **Export** cạnh **Thêm mới** mở hộp thoại chọn:
+- **Phạm vi dữ liệu**: "Dữ liệu hiện tại" (đúng phần đang lọc trên màn hình —
+  chỉ chọn được khi đang có filter) hoặc "Toàn bộ dữ liệu" (mọi record của
+  table, không giới hạn 500 như khi xem trên UI).
+- **Format**: CSV, Excel (`.xls`, dạng SpreadsheetML XML — mở trực tiếp bằng
+  Excel/Numbers/Google Sheets, không cần thư viện ngoài), hoặc Markdown.
+
+File được lưu vào thư mục `exports/` (không commit vào git) với tên
+`{tên table}_yyyymmdd_hhmmss.<đuôi file>`, ví dụ `Person_20260913_143000.csv`.
+
 ## Giới hạn đã biết
 
 - Chỉ hỗ trợ field kiểu đơn giản (string/int/double/bool/date/...). Field kiểu

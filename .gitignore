@@ -4,3 +4,4 @@ node_modules/
 *.realm.management/
 .DS_Store
 logs/
+exports/

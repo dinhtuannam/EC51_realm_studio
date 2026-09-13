@@ -60,6 +60,10 @@
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Thêm mới
         </button>
+        <button id="export-data" type="button" class="btn btn-ghost">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export
+        </button>
       </div>
       <div id="loading-bar"></div>
       <div id="table-wrap"></div>
@@ -84,6 +88,42 @@
       <div class="confirm-actions">
         <button type="button" id="confirm-cancel" class="btn btn-ghost">Hủy</button>
         <button type="button" id="confirm-ok" class="btn btn-danger">Xóa</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="export-overlay" hidden>
+    <div class="export-card">
+      <h2>Export dữ liệu</h2>
+      <div class="field">
+        <label class="field-title">Phạm vi dữ liệu</label>
+        <label class="radio-option">
+          <input type="radio" name="export-scope" id="export-scope-current" value="current" />
+          Dữ liệu hiện tại (đang áp dụng filter)
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="export-scope" id="export-scope-all" value="all" />
+          Toàn bộ dữ liệu
+        </label>
+      </div>
+      <div class="field">
+        <label class="field-title">Format</label>
+        <label class="radio-option">
+          <input type="radio" name="export-format" id="export-format-csv" value="csv" checked />
+          CSV
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="export-format" id="export-format-excel" value="excel" />
+          Excel
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="export-format" id="export-format-markdown" value="markdown" />
+          Markdown
+        </label>
+      </div>
+      <div class="edit-actions">
+        <button type="button" id="export-cancel" class="btn btn-ghost">Hủy</button>
+        <button type="button" id="export-confirm" class="btn btn-primary">Export</button>
       </div>
     </div>
   </div>

@@ -6,6 +6,7 @@ const fs = require('fs');
 const { createApp } = require('../src/app');
 const realmService = require('../src/realmService');
 const { buildFixtureRealm } = require('./fixtures/buildFixture');
+const { EXPORT_DIR } = require('../src/exportService');
 
 function startServer(app) {
   return new Promise((resolve) => {
@@ -54,6 +55,28 @@ test('HTTP API end-to-end: open, schema, CRUD qua HTTP that su', async (t) => {
   const countBody = await countRes.json();
   assert.equal(countRes.status, 200);
   assert.equal(countBody.data.total, 2);
+
+  const exportRes = await fetch(`${base}/api/objects/Person/export`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filter: '', format: 'csv' }),
+  });
+  const exportBody = await exportRes.json();
+  assert.equal(exportRes.status, 200);
+  assert.equal(exportBody.ok, true);
+  assert.equal(exportBody.data.rowCount, 2);
+  const exportedPath = require('path').join(EXPORT_DIR, exportBody.data.fileName);
+  assert.ok(fs.existsSync(exportedPath), 'exported file should actually exist on disk');
+  fs.rmSync(exportedPath, { force: true });
+
+  const badFormatRes = await fetch(`${base}/api/objects/Person/export`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filter: '', format: 'pdf' }),
+  });
+  const badFormatBody = await badFormatRes.json();
+  assert.equal(badFormatRes.status, 400);
+  assert.equal(badFormatBody.ok, false);
 
   const createRes = await fetch(`${base}/api/objects/Person`, {
     method: 'POST',
