@@ -175,6 +175,28 @@
     </div>
   </div>
 
+  <!-- Troll đồng nghiệp (chỉ để đùa, không phải tính năng thật): hiện ra sau
+       lần Lưu record thành công thứ 3, xem public/js/troll.js. -->
+  <div id="troll-paywall-overlay" hidden>
+    <div class="confirm-card troll-paywall-card">
+      <h2 class="troll-paywall-title">Phiên bản dùng thử đã hết hạn</h2>
+      <p>Bạn đã lưu 3 record - vượt quá giới hạn của bản Free Trial.</p>
+      <p>Để tiếp tục sử dụng EC51 Realm Studio, vui lòng liên hệ bộ phận kinh doanh để mua license của Namdt, hoặc chứng minh bạn xứng đáng dùng free bằng cách giải đúng 1 câu đố.</p>
+      <div class="confirm-actions">
+        <button type="button" id="troll-play-btn" class="btn btn-primary">Chơi luôn</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="troll-quiz-overlay" hidden>
+    <div class="dialog-card" id="troll-quiz-card">
+      <h2>Giải đúng để mở khóa tiếp tục dùng free</h2>
+      <p id="troll-quiz-question" class="troll-quiz-question"></p>
+      <div id="troll-quiz-options" class="troll-quiz-options"></div>
+      <p id="troll-quiz-feedback" class="troll-quiz-feedback"></p>
+    </div>
+  </div>
+
   <div id="toast-container"></div>
 
   <!-- Thứ tự có ý nghĩa: mỗi file là 1 <script> cổ điển (không phải module),
@@ -190,6 +212,7 @@
   <script src="js/table.js"></script>
   <script src="js/editForm.js"></script>
   <script src="js/importExport.js"></script>
+  <script src="js/troll.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

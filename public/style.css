@@ -692,3 +692,57 @@ tr.row-highlight { animation: row-highlight-fade 3s ease-in; }
   85% { opacity: 1; transform: translateY(0); }
   100% { opacity: 0; transform: translateY(0); }
 }
+
+/* ---------- Troll đồng nghiệp (đùa, không phải tính năng thật) ---------- */
+#troll-paywall-overlay, #troll-quiz-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+  padding: 16px;
+}
+/* Viền/glow màu hổ phách (--edit) thay vì cyan/magenta như các dialog khác -
+   trông giống 1 cảnh báo license thật, khác biệt rõ để "đáng tin" hơn. */
+.troll-paywall-card {
+  border-color: var(--edit);
+  box-shadow: var(--shadow-lg), 0 0 32px var(--edit-soft);
+}
+.troll-paywall-title {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--edit);
+  text-shadow: 0 0 12px var(--edit-soft);
+}
+.troll-paywall-card p { margin: 0 0 10px; font-size: 13px; line-height: 1.5; }
+.troll-quiz-question {
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+  margin: 4px 0 18px;
+  color: var(--accent);
+  text-shadow: 0 0 10px var(--accent-soft);
+}
+.troll-quiz-options { display: flex; flex-direction: column; gap: 8px; }
+/* white-space:normal ghi đè .btn (mặc định nowrap) - đáp án đạo hàm có thể
+   dài hơn nhãn nút thông thường, cần cho phép xuống dòng thay vì bị cắt. */
+.troll-quiz-option { width: 100%; justify-content: flex-start; text-align: left; white-space: normal; }
+.troll-quiz-feedback {
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 500;
+  min-height: 18px;
+  margin: 14px 0 0;
+  text-align: center;
+}
+@keyframes troll-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+#troll-quiz-card.shake { animation: troll-shake 0.4s ease; }

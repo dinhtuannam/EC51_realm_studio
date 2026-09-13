@@ -105,6 +105,7 @@ el('edit-form').addEventListener('submit', async (e) => {
       refreshOneClassCount(state.currentClass);
     }
     showToast(wasCreate ? 'Đã tạo record mới thành công.' : 'Đã lưu thay đổi thành công.');
+    notifyEditFormSaved();
   } catch (err) {
     // Giữ lại text lỗi trong form (form vẫn đang mở để sửa lại), đồng thời
     // vẫn showError() theo quy ước chung của toàn hệ thống cho thao tác thất bại.
