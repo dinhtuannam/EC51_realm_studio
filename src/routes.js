@@ -33,6 +33,10 @@ router.get('/objects/:className', handle(async (req) => {
   return realmService.listObjects(req.params.className, filter);
 }));
 
+router.get('/objects/:className/count', handle(async (req) => {
+  return realmService.countObjects(req.params.className);
+}));
+
 router.post('/objects/:className', handle(async (req) => {
   return realmService.createObject(req.params.className, req.body || {});
 }));

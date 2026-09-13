@@ -70,6 +70,22 @@ test('listObjects: tra dung record, __ref, filter RQL', async (t) => {
   assert.throws(() => realmService.listObjects('Person', 'age >>> 5'), /Filter khong hop le/);
 });
 
+test('countObjects: dem nhanh khong can fetch row, loi khi class khong ton tai', async (t) => {
+  const { filePath, encryptionKeyHex, dir } = await buildFixtureRealm();
+  t.after(() => {
+    realmService.closeRealm();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+  await realmService.openRealm(filePath, encryptionKeyHex);
+
+  assert.equal(realmService.countObjects('Person').total, 2);
+  assert.equal(realmService.countObjects('Note').total, 2);
+  assert.throws(() => realmService.countObjects('NoSuchClass'), /Khong tim thay class/);
+
+  realmService.createObject('Person', { id: 'p3', name: 'Carol', age: 40, active: true });
+  assert.equal(realmService.countObjects('Person').total, 3);
+});
+
 test('createObject/updateObject/deleteObject: CRUD day du + loi khi ref khong ton tai', async (t) => {
   const { filePath, encryptionKeyHex, dir } = await buildFixtureRealm();
   t.after(() => {

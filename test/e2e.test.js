@@ -39,6 +39,11 @@ test('HTTP API end-to-end: open, schema, CRUD qua HTTP that su', async (t) => {
   const listBody = await listRes.json();
   assert.equal(listBody.data.total, 2);
 
+  const countRes = await fetch(`${base}/api/objects/Person/count`);
+  const countBody = await countRes.json();
+  assert.equal(countRes.status, 200);
+  assert.equal(countBody.data.total, 2);
+
   const createRes = await fetch(`${base}/api/objects/Person`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

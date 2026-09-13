@@ -1,7 +1,14 @@
 'use strict';
 
+const STORAGE_KEYS = {
+  filePath: 'ec51RealmStudio.filePath',
+  encryptionKeyHex: 'ec51RealmStudio.encryptionKeyHex',
+};
+
 const state = {
   schema: [],
+  classCounts: {},
+  classSearchText: '',
   currentClass: null,
   currentSchema: null,
   filter: '',
@@ -16,6 +23,26 @@ const el = (id) => document.getElementById(id);
 // instead of overwriting state.rows/state.filter with mismatched data - that
 // mismatch is exactly what would break the __ref filter round-trip below.
 let loadRequestId = 0;
+
+function loadSavedConnection() {
+  try {
+    return {
+      filePath: localStorage.getItem(STORAGE_KEYS.filePath) || '',
+      encryptionKeyHex: localStorage.getItem(STORAGE_KEYS.encryptionKeyHex) || '',
+    };
+  } catch {
+    return { filePath: '', encryptionKeyHex: '' };
+  }
+}
+
+function saveConnection(filePath, encryptionKeyHex) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.filePath, filePath);
+    localStorage.setItem(STORAGE_KEYS.encryptionKeyHex, encryptionKeyHex);
+  } catch {
+    // Private browsing / storage disabled - not critical, just skip remembering.
+  }
+}
 
 async function api(method, url, body) {
   const res = await fetch(url, {
@@ -36,14 +63,13 @@ function setStatus(message, isError) {
   box.className = isError ? 'error' : 'ok';
 }
 
-el('open-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const filePath = el('file-path').value.trim();
-  const encryptionKeyHex = el('encryption-key').value.trim();
+async function openConnection(filePath, encryptionKeyHex) {
   try {
     const { schema } = await api('POST', '/api/open', { filePath, encryptionKeyHex });
+    saveConnection(filePath, encryptionKeyHex);
     loadRequestId += 1; // invalidate any in-flight loadObjects() from a previously opened file
     state.schema = schema;
+    state.classCounts = {};
     state.currentClass = null;
     state.currentSchema = null;
     state.filter = '';
@@ -55,22 +81,76 @@ el('open-form').addEventListener('submit', async (e) => {
     el('row-count').textContent = '';
     setStatus(`Da mo file. Tim thay ${schema.length} class.`, false);
     renderClassList();
+    loadClassCounts(schema);
   } catch (err) {
     setStatus(err.message, true);
   }
+}
+
+el('open-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const filePath = el('file-path').value.trim();
+  const encryptionKeyHex = el('encryption-key').value.trim();
+  await openConnection(filePath, encryptionKeyHex);
 });
+
+function formatClassLabel(className) {
+  const count = state.classCounts[className];
+  return count === undefined ? className : `${className} (${count})`;
+}
 
 function renderClassList() {
   const list = el('class-list');
   list.innerHTML = '';
-  for (const cls of state.schema) {
+  const q = state.classSearchText.trim().toLowerCase();
+  const visible = q ? state.schema.filter((cls) => cls.name.toLowerCase().includes(q)) : state.schema;
+  for (const cls of visible) {
     const item = document.createElement('div');
     item.className = 'class-item';
-    item.textContent = cls.name;
+    item.dataset.className = cls.name;
+    item.classList.toggle('active', cls.name === state.currentClass);
+    item.textContent = formatClassLabel(cls.name);
     item.addEventListener('click', () => selectClass(cls.name));
     list.appendChild(item);
   }
 }
+
+async function loadClassCounts(schema) {
+  await Promise.all(schema.map(async (cls) => {
+    try {
+      const { total } = await api('GET', `/api/objects/${encodeURIComponent(cls.name)}/count`);
+      updateClassCount(cls.name, total);
+    } catch {
+      // Leave this one without a count rather than failing the whole sidebar.
+    }
+  }));
+}
+
+function updateClassCount(className, total) {
+  state.classCounts[className] = total;
+  const item = el('class-list').querySelector(`[data-class-name="${CSS.escape(className)}"]`);
+  if (item) {
+    item.textContent = formatClassLabel(className);
+  }
+}
+
+async function refreshOneClassCount(className) {
+  try {
+    const { total } = await api('GET', `/api/objects/${encodeURIComponent(className)}/count`);
+    updateClassCount(className, total);
+  } catch {
+    // Not critical - the table itself already reflects the change.
+  }
+}
+
+el('class-search').addEventListener('input', () => {
+  state.classSearchText = el('class-search').value;
+  renderClassList();
+});
+
+el('toggle-sidebar').addEventListener('click', () => {
+  el('sidebar').classList.toggle('collapsed');
+});
 
 async function selectClass(className) {
   state.currentClass = className;
@@ -78,7 +158,7 @@ async function selectClass(className) {
   el('filter-input').value = '';
   el('toolbar').hidden = false;
   document.querySelectorAll('.class-item').forEach((n) => {
-    n.classList.toggle('active', n.textContent === className);
+    n.classList.toggle('active', n.dataset.className === className);
   });
   await loadObjects();
 }
@@ -211,8 +291,9 @@ el('edit-form').addEventListener('submit', async (e) => {
     if (input.disabled) continue;
     fields[input.name] = input.type === 'checkbox' ? input.checked : input.value;
   }
+  const wasCreate = state.editingRef === null;
   try {
-    if (state.editingRef === null) {
+    if (wasCreate) {
       await api('POST', `/api/objects/${encodeURIComponent(state.currentClass)}`, fields);
     } else {
       // Must send the SAME filter that was active when this row's __ref (an
@@ -227,6 +308,9 @@ el('edit-form').addEventListener('submit', async (e) => {
     }
     el('edit-overlay').hidden = true;
     await loadObjects();
+    if (wasCreate) {
+      refreshOneClassCount(state.currentClass);
+    }
   } catch (err) {
     el('edit-error').textContent = err.message;
   }
@@ -241,7 +325,19 @@ async function deleteRow(row) {
       `/api/objects/${encodeURIComponent(state.currentClass)}/${encodeURIComponent(row.__ref)}${query}`
     );
     await loadObjects();
+    refreshOneClassCount(state.currentClass);
   } catch (err) {
     setStatus(err.message, true);
   }
 }
+
+// Auto-load a previously opened file/key, if any, so returning to the tool
+// doesn't require copy-pasting the path and key again.
+(function initFromStorage() {
+  const saved = loadSavedConnection();
+  el('file-path').value = saved.filePath;
+  el('encryption-key').value = saved.encryptionKeyHex;
+  if (saved.filePath) {
+    openConnection(saved.filePath, saved.encryptionKeyHex);
+  }
+})();

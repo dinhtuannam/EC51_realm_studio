@@ -134,6 +134,14 @@ function listObjects(className, filter) {
   return { total, returned: rows.length, rows, schema: clientSchema };
 }
 
+function countObjects(className) {
+  const realm = assertOpen();
+  findSchema(className); // validates the class exists, consistent 404 handling
+  // .length on an unfiltered Results is O(1) in realm-core - no rows are
+  // materialized, so this is safe to call for every class in the sidebar.
+  return { total: realm.objects(className).length };
+}
+
 function coerceValue(prop, rawValue) {
   if (rawValue === null || rawValue === undefined) {
     return prop.optional ? null : rawValue;
@@ -274,6 +282,7 @@ module.exports = {
   toClientSchema,
   assertOpen,
   listObjects,
+  countObjects,
   serializeObject,
   createObject,
   updateObject,

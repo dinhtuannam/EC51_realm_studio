@@ -4,24 +4,47 @@
    (attribute selectors have lower specificity than ID selectors) - so
    toggling .hidden in app.js would do nothing without this override. */
 [hidden] { display: none !important; }
-body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; background: #f7f7f8; color: #1a1a1a; }
-header { padding: 12px 16px; background: #20232a; color: white; }
+html, body { height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  margin: 0;
+  background: #f7f7f8;
+  color: #1a1a1a;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+/* header/main split the viewport with flex instead of a hardcoded
+   `calc(100vh - Npx)` - a fixed header-height guess breaks (main overflows
+   the viewport, so #table-wrap's own scrollbars end up below the fold and
+   require scrolling the whole page to reach) the moment the header wraps to
+   more than one line. min-height:0 on the nested flex chain is required for
+   overflow:auto to actually clip inside a flex item instead of growing it. */
+header { flex: 0 0 auto; padding: 12px 16px; background: #20232a; color: white; }
 header h1 { font-size: 16px; margin: 0 0 8px; }
 #open-form input { padding: 6px; margin-right: 6px; }
 #open-form button { padding: 6px 12px; }
 #status { margin-top: 6px; font-size: 13px; min-height: 16px; }
 #status.error { color: #ff8080; }
 #status.ok { color: #7CFC9A; }
-main { display: flex; height: calc(100vh - 90px); }
-#class-list { width: 200px; overflow-y: auto; border-right: 1px solid #ddd; background: white; }
-.class-item { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 13px; }
+main { flex: 1 1 auto; display: flex; min-height: 0; }
+#sidebar { flex: 0 0 220px; display: flex; flex-direction: column; min-height: 0; border-right: 1px solid #ddd; background: white; transition: flex-basis 0.15s ease; }
+#sidebar.collapsed { flex-basis: 36px; }
+#sidebar.collapsed #class-search,
+#sidebar.collapsed #class-list { display: none; }
+#sidebar-header { flex: 0 0 auto; display: flex; gap: 4px; padding: 6px; border-bottom: 1px solid #eee; }
+#toggle-sidebar { flex: 0 0 auto; padding: 4px 8px; cursor: pointer; }
+#class-search { flex: 1; min-width: 0; padding: 4px; font-size: 12px; }
+#class-list { flex: 1; overflow-y: auto; min-height: 0; }
+.class-item { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 13px; white-space: nowrap; }
 .class-item:hover { background: #f0f0f0; }
 .class-item.active { background: #dbe9ff; font-weight: 600; }
-#content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-#toolbar { padding: 8px; background: white; border-bottom: 1px solid #ddd; display: flex; gap: 6px; align-items: center; }
+.class-item .count { color: #888; font-weight: normal; }
+#content { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+#toolbar { flex: 0 0 auto; padding: 8px; background: white; border-bottom: 1px solid #ddd; display: flex; gap: 6px; align-items: center; }
 #filter-input { flex: 1; padding: 6px; }
 #row-count { font-size: 12px; color: #666; white-space: nowrap; }
-#table-wrap { flex: 1; overflow: auto; padding: 8px; }
+#table-wrap { flex: 1; overflow: auto; min-height: 0; padding: 8px; }
 table { border-collapse: collapse; width: 100%; background: white; font-size: 13px; }
 th, td { border: 1px solid #eee; padding: 4px 8px; text-align: left; white-space: nowrap; }
 th { background: #f0f0f0; position: sticky; top: 0; }
