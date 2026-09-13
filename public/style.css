@@ -399,7 +399,13 @@ tr.row-highlight { animation: row-highlight-fade 3s ease-in; }
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 200;
+  /* Must outrank #export-overlay/#import-overlay (both z-index: 200): the
+     "Ghi đè" import flow opens this ON TOP of the still-open import dialog
+     (deliberately left open underneath in case the user cancels), and at
+     equal z-index the later DOM element wins regardless of which one was
+     shown last - which happened to be the import dialog, hiding this one
+     completely until the import dialog was closed. */
+  z-index: 300;
   padding: 16px;
 }
 .confirm-card {
