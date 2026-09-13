@@ -256,14 +256,35 @@ function resolveObject(realm, objSchema, ref, filter) {
   return results[index];
 }
 
+// realm-core's own message for this case ("Attempting to create an object
+// of type 'X' with an existing primary key value 'Y'.") is the one common,
+// well-understood, user-actionable error that still leaked through in raw
+// English - translate just this one pattern to Vietnamese; anything else
+// stays untouched, since surfacing the real realm-core text verbatim for
+// unexpected errors is the whole point of this tool.
+const DUPLICATE_PK_PATTERN = /^Attempting to create an object of type '([^']+)' with an existing primary key value '([^']+)'\.?$/;
+
 function createObject(className, fields) {
   const realm = assertOpen();
   const objSchema = findSchema(className);
   const values = buildWriteValues(objSchema, fields);
   let created;
-  realm.write(() => {
-    created = realm.create(className, values);
-  });
+  try {
+    realm.write(() => {
+      created = realm.create(className, values);
+    });
+  } catch (e) {
+    const match = DUPLICATE_PK_PATTERN.exec(e.message);
+    if (match) {
+      const [, matchedClassName, matchedValue] = match;
+      const err = new Error(
+        `Không thể tạo record: khóa chính "${matchedValue}" đã tồn tại trong table "${matchedClassName}". Vui lòng nhập giá trị khác.`
+      );
+      err.statusCode = 400;
+      throw err;
+    }
+    throw e;
+  }
   const clientSchema = toClientSchema(objSchema);
   const row = serializeObject(created, clientSchema);
   row.__ref = objSchema.primaryKey ? created[objSchema.primaryKey] : null;

@@ -167,6 +167,27 @@ test('createObject/updateObject/deleteObject: CRUD day du + loi khi ref khong to
   );
 });
 
+test('createObject: trung primary key bao loi tieng Viet ro rang, khong lo nguyen van message tieng Anh cua realm-core', async (t) => {
+  const { filePath, encryptionKeyHex, dir } = await buildFixtureRealm();
+  t.after(() => {
+    realmService.closeRealm();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+  await realmService.openRealm(filePath, encryptionKeyHex);
+
+  try {
+    realmService.createObject('Person', { id: 'p1', name: 'Duplicate', age: 1, active: true });
+    assert.fail('phai nem loi khi tao record voi primary key da ton tai');
+  } catch (err) {
+    assert.match(err.message, /khóa chính "p1" đã tồn tại trong table "Person"/);
+    assert.ok(!err.message.includes('Attempting to create'), 'khong duoc lo message tieng Anh goc cua realm-core');
+    assert.equal(err.statusCode, 400);
+  }
+  // Record goc (Alice) khong duoc dung cham toi.
+  const rows = realmService.listObjects('Person', '').rows;
+  assert.equal(rows.find((r) => r.id === 'p1').name, 'Alice');
+});
+
 test('updateObject/deleteObject: filter phai duoc truyen dung khi ref la index; validate ref/gia tri', async (t) => {
   const { filePath, encryptionKeyHex, dir } = await buildFixtureRealm();
   t.after(() => {
