@@ -3,3 +3,4 @@ node_modules/
 *.realm.lock
 *.realm.management/
 .DS_Store
+logs/

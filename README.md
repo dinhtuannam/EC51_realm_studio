@@ -15,6 +15,14 @@ Không dùng cho production — chỉ để dev tự kiểm tra dữ liệu trê
 4. Nhập **File path** tới file `.realm` và **Encryption key** (chuỗi hex 128 ký tự,
    để trống nếu file không mã hoá), bấm **Open**.
 
+## Log
+
+Mỗi lần chạy `npm start` sẽ tạo 1 file log riêng trong thư mục `logs/`
+(`logs/app-<thoi-diem-chay>.log`), ghi lại mọi request tới API (path, body
+đã ẩn encryption key, status code, thời gian xử lý) và message lỗi thật từ
+realm-core khi có. Nếu gặp lỗi, gửi kèm nội dung file log gần nhất để tra
+cứu nhanh hơn thay vì phải tái hiện lại lỗi.
+
 ## Giới hạn đã biết
 
 - Chỉ hỗ trợ field kiểu đơn giản (string/int/double/bool/date/...). Field kiểu

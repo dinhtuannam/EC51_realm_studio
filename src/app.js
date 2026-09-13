@@ -4,10 +4,53 @@ const express = require('express');
 const path = require('path');
 const routes = require('./routes');
 
-function createApp() {
+function noopLogger() {
+  return { filePath: null, info: () => {}, error: () => {} };
+}
+
+function redactBody(body) {
+  if (!body || typeof body !== 'object') return undefined;
+  const clone = { ...body };
+  if ('encryptionKeyHex' in clone) {
+    clone.encryptionKeyHex = '[REDACTED]';
+  }
+  return clone;
+}
+
+// Logs every /api request with its outcome, so a failure (especially a raw
+// realm-core error message) can be traced later from the log file instead
+// of having to reproduce it live. The encryption key is never written to
+// disk. Mounted only on /api - static file requests aren't logged, since
+// they carry no diagnostic value for this tool's purpose.
+function requestLogger(logger) {
+  return (req, res, next) => {
+    const start = Date.now();
+    const originalJson = res.json.bind(res);
+    let responseBody;
+    res.json = (body) => {
+      responseBody = body;
+      return originalJson(body);
+    };
+    res.on('finish', () => {
+      const ms = Date.now() - start;
+      const bodySummary = redactBody(req.body);
+      const bodyPart = bodySummary ? ` body=${JSON.stringify(bodySummary)}` : '';
+      const base = `${req.method} ${req.originalUrl}${bodyPart} -> ${res.statusCode} (${ms}ms)`;
+      if (responseBody && responseBody.ok === false) {
+        logger.error(`${base} | error: ${responseBody.error}`);
+      } else {
+        logger.info(base);
+      }
+    });
+    next();
+  };
+}
+
+function createApp({ logger } = {}) {
+  const activeLogger = logger || noopLogger();
   const app = express();
   app.use(express.json());
-  app.use('/api', routes);
+  app.use('/api', requestLogger(activeLogger), routes);
   app.use(express.static(path.join(__dirname, '..', 'public')));
   return app;
 }
