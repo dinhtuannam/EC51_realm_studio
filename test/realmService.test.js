@@ -133,7 +133,7 @@ test('countObjects: dem nhanh khong can fetch row, loi khi class khong ton tai',
 
   assert.equal(realmService.countObjects('Person').total, 2);
   assert.equal(realmService.countObjects('Note').total, 2);
-  assert.throws(() => realmService.countObjects('NoSuchClass'), /Không tìm thấy class/);
+  assert.throws(() => realmService.countObjects('NoSuchClass'), /Không tìm thấy table/);
 
   realmService.createObject('Person', { id: 'p3', name: 'Carol', age: 40, active: true });
   assert.equal(realmService.countObjects('Person').total, 3);

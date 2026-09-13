@@ -100,7 +100,7 @@ function findSchema(className) {
   const realm = assertOpen();
   const found = realm.schema.find((s) => s.name === className);
   if (!found) {
-    const err = new Error(`Không tìm thấy class "${className}" trong schema.`);
+    const err = new Error(`Không tìm thấy table "${className}" trong schema.`);
     err.statusCode = 404;
     throw err;
   }

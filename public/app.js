@@ -94,6 +94,35 @@ function showError(message) {
   alert(message);
 }
 
+// Dialog xác nhận tự vẽ (thay cho confirm() mặc định của browser, vốn nhìn
+// lạc quẻ với theme tối) - trả về 1 Promise<boolean> giống hệt confirm(),
+// nên chỉ cần đổi 1 chỗ gọi ở deleteRow() sang `await showConfirm(...)`.
+function showConfirm(message) {
+  return new Promise((resolve) => {
+    el('confirm-message').textContent = message;
+    el('confirm-overlay').hidden = false;
+
+    const okBtn = el('confirm-ok');
+    const cancelBtn = el('confirm-cancel');
+    const overlay = el('confirm-overlay');
+
+    function cleanup(result) {
+      overlay.hidden = true;
+      okBtn.removeEventListener('click', onOk);
+      cancelBtn.removeEventListener('click', onCancel);
+      overlay.removeEventListener('click', onOverlayClick);
+      resolve(result);
+    }
+    function onOk() { cleanup(true); }
+    function onCancel() { cleanup(false); }
+    function onOverlayClick(e) { if (e.target === overlay) cleanup(false); }
+
+    okBtn.addEventListener('click', onOk);
+    cancelBtn.addEventListener('click', onCancel);
+    overlay.addEventListener('click', onOverlayClick);
+  });
+}
+
 // Phản ánh class/filter đang xem lên query string bằng replaceState (không
 // tạo history entry cho mỗi lần bấm, không reload trang) - để F5 lại trang
 // vẫn giữ nguyên URL đó và tự mở lại đúng bảng đang xem.
@@ -137,7 +166,7 @@ async function openConnection(filePath, encryptionKeyHex, { restoreFromUrl = fal
     // phía trên (xem quy tắc html.connected trong style.css) - chỉ 1 class,
     // không có logic show/hide nào khác cần thêm.
     document.documentElement.classList.add('connected');
-    showToast(`Đã mở file thành công. Tìm thấy ${schema.length} class.`);
+    showToast(`Đã mở file thành công. Tìm thấy ${schema.length} table.`);
     renderClassList();
     loadClassCounts(schema);
 
@@ -305,7 +334,7 @@ function renderTable() {
   const wrap = el('table-wrap');
   wrap.innerHTML = '';
   if (!state.currentSchema) {
-    wrap.appendChild(emptyState(ICONS.database, 'Chọn 1 class ở sidebar để xem dữ liệu'));
+    wrap.appendChild(emptyState(ICONS.database, 'Chọn 1 table ở sidebar để xem dữ liệu'));
     return;
   }
   const table = document.createElement('table');
@@ -403,10 +432,10 @@ function openEditForm(sourceRow, { duplicate = false } = {}) {
   const isEditingExisting = !!sourceRow && !duplicate;
   state.editingRef = isEditingExisting ? sourceRow.__ref : null;
   el('edit-title').textContent = isEditingExisting
-    ? `Sửa record trong class "${state.currentClass}"`
+    ? `Sửa record trong table "${state.currentClass}"`
     : duplicate
-      ? `Nhân bản record trong class "${state.currentClass}"`
-      : `Thêm record mới trong class "${state.currentClass}"`;
+      ? `Nhân bản record trong table "${state.currentClass}"`
+      : `Thêm record mới trong table "${state.currentClass}"`;
   el('edit-error').textContent = '';
   const fieldsBox = el('edit-fields');
   fieldsBox.innerHTML = '';
@@ -503,7 +532,8 @@ el('edit-form').addEventListener('submit', async (e) => {
 });
 
 async function deleteRow(row) {
-  if (!confirm('Bạn có chắc muốn xóa record này không?')) return;
+  const confirmed = await showConfirm('Bạn có chắc muốn xóa record này không?');
+  if (!confirmed) return;
   try {
     const query = state.filter ? `?filter=${encodeURIComponent(state.filter)}` : '';
     await api(

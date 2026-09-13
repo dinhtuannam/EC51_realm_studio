@@ -32,12 +32,12 @@
   <main>
     <aside id="sidebar">
       <div id="sidebar-header">
-        <button type="button" id="toggle-sidebar" class="icon-btn" title="Thu gọn/mở rộng danh sách class">
+        <button type="button" id="toggle-sidebar" class="icon-btn" title="Thu gọn/mở rộng danh sách table">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
         </button>
         <div class="search-wrap">
           <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="class-search" placeholder="Tìm class theo tên..." autocomplete="off" />
+          <input type="text" id="class-search" placeholder="Tìm table theo tên..." autocomplete="off" />
         </div>
       </div>
       <div id="class-list"></div>
@@ -76,6 +76,16 @@
         <button type="submit" class="btn btn-primary">Lưu</button>
       </div>
     </form>
+  </div>
+
+  <div id="confirm-overlay" hidden>
+    <div class="confirm-card">
+      <p id="confirm-message"></p>
+      <div class="confirm-actions">
+        <button type="button" id="confirm-cancel" class="btn btn-ghost">Hủy</button>
+        <button type="button" id="confirm-ok" class="btn btn-danger">Xóa</button>
+      </div>
+    </div>
   </div>
 
   <div id="toast-container"></div>
