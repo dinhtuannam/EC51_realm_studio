@@ -11,6 +11,12 @@ const state = {
 
 const el = (id) => document.getElementById(id);
 
+// Bumped by loadObjects() and on a fresh /api/open, so a slow/stale response
+// (e.g. Apply then Clear before the first request lands) can be dropped
+// instead of overwriting state.rows/state.filter with mismatched data - that
+// mismatch is exactly what would break the __ref filter round-trip below.
+let loadRequestId = 0;
+
 async function api(method, url, body) {
   const res = await fetch(url, {
     method,
@@ -36,7 +42,17 @@ el('open-form').addEventListener('submit', async (e) => {
   const encryptionKeyHex = el('encryption-key').value.trim();
   try {
     const { schema } = await api('POST', '/api/open', { filePath, encryptionKeyHex });
+    loadRequestId += 1; // invalidate any in-flight loadObjects() from a previously opened file
     state.schema = schema;
+    state.currentClass = null;
+    state.currentSchema = null;
+    state.filter = '';
+    state.rows = [];
+    state.editingRef = null;
+    el('filter-input').value = '';
+    el('toolbar').hidden = true;
+    el('table-wrap').innerHTML = '';
+    el('row-count').textContent = '';
     setStatus(`Da mo file. Tim thay ${schema.length} class.`, false);
     renderClassList();
   } catch (err) {
@@ -69,15 +85,18 @@ async function selectClass(className) {
 
 async function loadObjects() {
   if (!state.currentClass) return;
+  const requestId = ++loadRequestId;
   try {
     const query = state.filter ? `?filter=${encodeURIComponent(state.filter)}` : '';
     const data = await api('GET', `/api/objects/${encodeURIComponent(state.currentClass)}${query}`);
+    if (requestId !== loadRequestId) return; // a newer load started meanwhile; drop this stale response
     state.currentSchema = data.schema;
     state.rows = data.rows;
     el('row-count').textContent = `${data.returned}/${data.total} record`;
     renderTable();
     setStatus('', false);
   } catch (err) {
+    if (requestId !== loadRequestId) return;
     setStatus(err.message, true);
   }
 }
