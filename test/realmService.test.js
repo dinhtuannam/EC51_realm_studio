@@ -52,3 +52,31 @@ test('listObjects: tra dung record, __ref, filter RQL', async (t) => {
 
   assert.throws(() => realmService.listObjects('Person', 'age >>> 5'), /Filter khong hop le/);
 });
+
+test('createObject/updateObject/deleteObject: CRUD day du + loi khi ref khong ton tai', async (t) => {
+  const { filePath, encryptionKeyHex, dir } = await buildFixtureRealm();
+  t.after(() => {
+    realmService.closeRealm();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+  await realmService.openRealm(filePath, encryptionKeyHex);
+
+  const created = realmService.createObject('Person', { id: 'p3', name: 'Carol', age: '40', active: true });
+  assert.equal(created.name, 'Carol');
+  assert.equal(created.age, 40);
+  assert.equal(realmService.listObjects('Person', '').total, 3);
+
+  const updated = realmService.updateObject('Person', 'p1', { name: 'Alice Updated' });
+  assert.equal(updated.name, 'Alice Updated');
+
+  const updatedNote = realmService.updateObject('Note', '0', { title: 'First Updated' });
+  assert.equal(updatedNote.title, 'First Updated');
+
+  realmService.deleteObject('Person', 'p3');
+  assert.equal(realmService.listObjects('Person', '').total, 2);
+
+  assert.throws(
+    () => realmService.updateObject('Person', 'no-such-id', { name: 'X' }),
+    /Khong tim thay record/
+  );
+});

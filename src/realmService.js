@@ -129,6 +129,111 @@ function listObjects(className, filter) {
   return { total, returned: rows.length, rows, schema: clientSchema };
 }
 
+function coerceValue(prop, rawValue) {
+  if (rawValue === null || rawValue === undefined) {
+    return prop.optional ? null : rawValue;
+  }
+  switch (prop.type) {
+    case 'int':
+      return rawValue === '' ? (prop.optional ? null : 0) : parseInt(rawValue, 10);
+    case 'float':
+    case 'double':
+      return rawValue === '' ? (prop.optional ? null : 0) : parseFloat(rawValue);
+    case 'bool':
+      return rawValue === true || rawValue === 'true';
+    case 'date':
+      return rawValue === '' ? (prop.optional ? null : new Date(0)) : new Date(rawValue);
+    case 'data':
+      return rawValue === '' ? Buffer.alloc(0) : Buffer.from(rawValue, 'base64');
+    default:
+      return rawValue;
+  }
+}
+
+function buildWriteValues(objSchema, fields) {
+  const values = {};
+  for (const prop of Object.values(objSchema.properties)) {
+    if (!(prop.name in fields)) continue;
+    if (!SIMPLE_TYPES.has(prop.type)) continue;
+    values[prop.name] = coerceValue(prop, fields[prop.name]);
+  }
+  return values;
+}
+
+function resolveObject(realm, objSchema, ref, filter) {
+  if (objSchema.primaryKey) {
+    const obj = realm.objectForPrimaryKey(objSchema.name, ref);
+    if (!obj) {
+      const err = new Error(`Khong tim thay record voi primary key "${ref}".`);
+      err.statusCode = 404;
+      throw err;
+    }
+    return obj;
+  }
+  // No primaryKey: ref is an index into the SAME result set (unfiltered, or
+  // filtered by the same `filter` string) that produced it in listObjects.
+  // Passing a different filter than the one used to display the row would
+  // resolve to the wrong record, so callers must round-trip the filter.
+  const index = Number(ref);
+  let results = realm.objects(objSchema.name);
+  if (filter) {
+    try {
+      results = results.filtered(filter);
+    } catch (e) {
+      const err = new Error(`Filter khong hop le: ${e.message}`);
+      err.statusCode = 400;
+      throw err;
+    }
+  }
+  if (!Number.isInteger(index) || index < 0 || index >= results.length) {
+    const err = new Error(`Index "${ref}" khong hop le trong danh sach hien tai (${results.length} record).`);
+    err.statusCode = 404;
+    throw err;
+  }
+  return results[index];
+}
+
+function createObject(className, fields) {
+  const realm = assertOpen();
+  const objSchema = findSchema(className);
+  const values = buildWriteValues(objSchema, fields);
+  let created;
+  realm.write(() => {
+    created = realm.create(className, values);
+  });
+  const clientSchema = toClientSchema(objSchema);
+  const row = serializeObject(created, clientSchema);
+  row.__ref = objSchema.primaryKey ? created[objSchema.primaryKey] : null;
+  return row;
+}
+
+function updateObject(className, ref, fields, filter) {
+  const realm = assertOpen();
+  const objSchema = findSchema(className);
+  const values = buildWriteValues(objSchema, fields);
+  let updated;
+  realm.write(() => {
+    const obj = resolveObject(realm, objSchema, ref, filter);
+    for (const [key, value] of Object.entries(values)) {
+      obj[key] = value;
+    }
+    updated = obj;
+  });
+  const clientSchema = toClientSchema(objSchema);
+  const row = serializeObject(updated, clientSchema);
+  row.__ref = objSchema.primaryKey ? updated[objSchema.primaryKey] : Number(ref);
+  return row;
+}
+
+function deleteObject(className, ref, filter) {
+  const realm = assertOpen();
+  const objSchema = findSchema(className);
+  realm.write(() => {
+    const obj = resolveObject(realm, objSchema, ref, filter);
+    realm.delete(obj);
+  });
+}
+
 module.exports = {
   openRealm,
   closeRealm,
@@ -138,4 +243,7 @@ module.exports = {
   assertOpen,
   listObjects,
   serializeObject,
+  createObject,
+  updateObject,
+  deleteObject,
 };
