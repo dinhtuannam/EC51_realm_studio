@@ -104,8 +104,13 @@ html.connected .connect-card {
 }
 html.connected .connect-hero-text { display: none; }
 html.connected #open-form { display: flex; gap: 8px; flex: 1; align-items: center; }
-html.connected .field { flex-direction: row; align-items: center; gap: 6px; margin: 0; flex: 1; min-width: 0; }
-html.connected .field label { display: none; }
+/* Scoped to #open-form specifically - ".field" is a generic class also
+   used by the export dialog's scope/format groups, and a bare ".field"/
+   ".field label" rule here previously hid those too (the whole radio
+   option list, not just the section titles) the moment html.connected
+   was set, i.e. always, since this only shows up after connecting. */
+html.connected #open-form .field { flex-direction: row; align-items: center; gap: 6px; margin: 0; flex: 1; min-width: 0; }
+html.connected #open-form .field label { display: none; }
 html.connected #open-form input { flex: 1; min-width: 0; }
 html.connected .btn-block { width: auto; flex: 0 0 auto; }
 
