@@ -237,6 +237,12 @@ function updateObject(className, ref, fields, filter) {
   const realm = assertOpen();
   const objSchema = findSchema(className);
   const values = buildWriteValues(objSchema, fields);
+  // Realm forbids assigning to a primaryKey property outside a migration,
+  // even when the value is unchanged. The edit form re-submits every field
+  // including the primary key, so it must be dropped here before write.
+  if (objSchema.primaryKey) {
+    delete values[objSchema.primaryKey];
+  }
   let updated;
   realm.write(() => {
     const obj = resolveObject(realm, objSchema, ref, filter);

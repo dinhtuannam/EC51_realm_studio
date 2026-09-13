@@ -165,11 +165,15 @@ function openEditForm(row) {
   el('edit-error').textContent = '';
   const fieldsBox = el('edit-fields');
   fieldsBox.innerHTML = '';
+  const primaryKey = state.currentSchema.primaryKey;
   for (const prop of state.currentSchema.properties) {
     const wrapDiv = document.createElement('div');
     wrapDiv.className = 'field-row';
+    // Realm forbids changing a primaryKey value outside a migration, so when
+    // editing an existing row that field is locked (server also drops it).
+    const isPrimaryKey = row && primaryKey && prop.name === primaryKey;
     const label = document.createElement('label');
-    label.textContent = `${prop.name} (${prop.type}${prop.optional ? ', optional' : ''})`;
+    label.textContent = `${prop.name} (${prop.type}${prop.optional ? ', optional' : ''}${isPrimaryKey ? ', primary key - khong sua duoc' : ''})`;
     const input = document.createElement('input');
     input.type = prop.type === 'bool' ? 'checkbox' : 'text';
     input.name = prop.name;
@@ -183,6 +187,9 @@ function openEditForm(row) {
         input.disabled = true;
       } else {
         input.value = value ?? '';
+      }
+      if (isPrimaryKey) {
+        input.disabled = true;
       }
     }
     wrapDiv.appendChild(label);

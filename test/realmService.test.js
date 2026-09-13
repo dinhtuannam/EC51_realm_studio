@@ -127,3 +127,26 @@ test('updateObject/deleteObject: filter phai duoc truyen dung khi ref la index; 
     /so nguyen hop le/
   );
 });
+
+test('updateObject: gui kem primaryKey khong doi khong duoc gay loi "outside migration"', async (t) => {
+  const { filePath, encryptionKeyHex, dir } = await buildFixtureRealm();
+  t.after(() => {
+    realmService.closeRealm();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+  await realmService.openRealm(filePath, encryptionKeyHex);
+
+  // The edit form re-submits every field, including the (unchanged) primary
+  // key. Realm throws "Cannot change value of primary key outside migration
+  // function" on any assignment to a primaryKey property, even a no-op one -
+  // updateObject must drop it before writing.
+  const updated = realmService.updateObject('Person', 'p1', {
+    id: 'p1',
+    name: 'Alice V2',
+    age: 31,
+    active: true,
+  });
+  assert.equal(updated.id, 'p1');
+  assert.equal(updated.name, 'Alice V2');
+  assert.equal(updated.age, 31);
+});
