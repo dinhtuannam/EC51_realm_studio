@@ -66,10 +66,20 @@ async function api(method, url, body) {
   return payload.data;
 }
 
-function setStatus(message, isError) {
-  const box = el('status');
-  box.textContent = message || '';
-  box.className = isError ? 'error' : 'ok';
+// Toast cho mọi thao tác THÀNH CÔNG, alert() (chặn cho tới khi người dùng
+// bấm OK) cho mọi thao tác THẤT BẠI - áp dụng thống nhất cho toàn bộ app
+// thay vì 1 thanh trạng thái dễ bị lướt qua như trước.
+function showToast(message) {
+  const container = el('toast-container');
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = message;
+  toast.addEventListener('animationend', () => toast.remove());
+  container.appendChild(toast);
+}
+
+function showError(message) {
+  alert(message);
 }
 
 async function openConnection(filePath, encryptionKeyHex) {
@@ -92,11 +102,11 @@ async function openConnection(filePath, encryptionKeyHex) {
     el('table-wrap').innerHTML = '';
     el('row-count').textContent = '';
     el('load-more').hidden = true;
-    setStatus(`Đã mở file thành công. Tìm thấy ${schema.length} class.`, false);
+    showToast(`Đã mở file thành công. Tìm thấy ${schema.length} class.`);
     renderClassList();
     loadClassCounts(schema);
   } catch (err) {
-    setStatus(err.message, true);
+    showError(err.message);
   }
 }
 
@@ -201,10 +211,9 @@ async function loadObjects() {
     state.offset = data.rows.length;
     updateRowCountUi();
     renderTable();
-    setStatus('', false);
   } catch (err) {
     if (requestId !== loadRequestId) return;
-    setStatus(err.message, true);
+    showError(err.message);
   }
 }
 
@@ -221,7 +230,7 @@ async function loadMoreObjects() {
     renderTable();
   } catch (err) {
     if (requestId !== loadRequestId) return;
-    setStatus(err.message, true);
+    showError(err.message);
   }
 }
 
@@ -388,12 +397,12 @@ el('edit-form').addEventListener('submit', async (e) => {
     if (wasCreate) {
       refreshOneClassCount(state.currentClass);
     }
-    // Đặt SAU loadObjects() (vì loadObjects() tự xoá #status khi thành công),
-    // nếu đặt trước thì thông báo này sẽ bị ghi đè mất ngay lập tức.
-    setStatus(wasCreate ? 'Đã tạo record mới thành công.' : 'Đã lưu thay đổi thành công.', false);
+    showToast(wasCreate ? 'Đã tạo record mới thành công.' : 'Đã lưu thay đổi thành công.');
   } catch (err) {
+    // Giữ lại text lỗi trong form (form vẫn đang mở để sửa lại), đồng thời
+    // vẫn alert() theo quy ước chung của toàn hệ thống cho thao tác thất bại.
     el('edit-error').textContent = err.message;
-    setStatus(`Lưu thất bại: ${err.message}`, true);
+    showError(`Lưu thất bại: ${err.message}`);
   }
 });
 
@@ -407,9 +416,9 @@ async function deleteRow(row) {
     );
     await loadObjects();
     refreshOneClassCount(state.currentClass);
-    setStatus('Đã xóa record thành công.', false);
+    showToast('Đã xóa record thành công.');
   } catch (err) {
-    setStatus(`Xóa thất bại: ${err.message}`, true);
+    showError(`Xóa thất bại: ${err.message}`);
   }
 }
 
