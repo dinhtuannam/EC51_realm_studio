@@ -225,13 +225,40 @@ input[type="text"]:focus { border-color: var(--accent); box-shadow: var(--glow-a
   transition: background-color 0.12s ease, border-color 0.12s ease, opacity 0.12s ease;
   white-space: nowrap;
 }
-.btn-primary { background: var(--primary); color: #05050a; font-weight: 600; }
-.btn-primary:hover { background: var(--primary-hover); box-shadow: var(--glow-primary); }
+/* "Neon sign" treatment thay vì fill đặc 1 màu (nhìn phẳng/nhựa) - nền kính
+   mờ pha màu + viền phát sáng + chữ có glow, giống 1 tấm biển neon thật hơn
+   là 1 khối màu đặc. Dùng chung cho .btn-primary/.btn-danger (2 nút hành
+   động "mạnh" duy nhất), chỉ khác biến màu. */
+.btn-primary {
+  background: linear-gradient(180deg, rgba(255, 47, 214, 0.24), rgba(255, 47, 214, 0.08));
+  color: var(--text);
+  font-weight: 600;
+  border-color: var(--primary);
+  text-shadow: 0 0 8px rgba(255, 47, 214, 0.9);
+  box-shadow: 0 0 10px rgba(255, 47, 214, 0.45), inset 0 0 14px rgba(255, 47, 214, 0.12);
+}
+.btn-primary:hover {
+  background: linear-gradient(180deg, rgba(255, 47, 214, 0.38), rgba(255, 47, 214, 0.16));
+  border-color: var(--primary-hover);
+  box-shadow: var(--glow-primary), inset 0 0 20px rgba(255, 47, 214, 0.22);
+}
 .btn-ghost { background: transparent; color: var(--text); border-color: var(--border); }
 .btn-ghost:hover { background: var(--bg-hover); border-color: var(--accent); }
 .btn-block { width: 100%; }
-.btn-danger { background: var(--danger); color: #05050a; font-weight: 600; }
-.btn-danger:hover { background: var(--danger-hover); box-shadow: var(--glow-danger); }
+.btn-danger {
+  background: linear-gradient(180deg, rgba(255, 41, 82, 0.24), rgba(255, 41, 82, 0.08));
+  color: var(--text);
+  font-weight: 600;
+  border-color: var(--danger);
+  text-shadow: 0 0 8px rgba(255, 41, 82, 0.9);
+  box-shadow: 0 0 10px rgba(255, 41, 82, 0.45), inset 0 0 14px rgba(255, 41, 82, 0.12);
+}
+.btn-danger:hover {
+  background: linear-gradient(180deg, rgba(255, 41, 82, 0.38), rgba(255, 41, 82, 0.16));
+  border-color: var(--danger-hover);
+  box-shadow: var(--glow-danger), inset 0 0 20px rgba(255, 41, 82, 0.22);
+}
+.btn-primary:active, .btn-danger:active { transform: translateY(1px); }
 
 /* Ghost buttons keep their neutral border/shape, just tint text + border
    with the action's own color so each reads distinctly at rest; hover adds
