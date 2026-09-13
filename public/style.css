@@ -6,49 +6,71 @@
 [hidden] { display: none !important; }
 
 :root {
-  --bg: #0a0a0f;
-  --bg-panel: #131318;
-  --bg-hover: #1c1c24;
-  --bg-input: #16161c;
-  --border: #2a2a35;
-  --text: #e8e8ec;
-  --text-muted: #8b8b96;
-  --accent: #6366f1;
-  --accent-hover: #7476f5;
-  --accent-soft: rgba(99, 102, 241, 0.15);
-  --success: #22c55e;
-  --danger: #ef4444;
-  --danger-hover: #dc2626;
-  --danger-soft: rgba(239, 68, 68, 0.12);
+  /* ---------- Neon cyberpunk palette (Blade Runner: cyan + magenta on
+     near-black) ---------- */
+  --bg: #05050a;
+  --bg-panel: #0a0a14;
+  --bg-hover: #12121f;
+  --bg-input: #0c0c16;
+  --border: #1c2733;
+  --text: #eafcff;
+  --text-muted: #7a95a0;
+  /* Cyan = "circuitry" color: focus rings, borders, active states, brand,
+     anything that reads as "live/connected" rather than "primary action". */
+  --accent: #00f0ff;
+  --accent-hover: #4dfaff;
+  --accent-soft: rgba(0, 240, 255, 0.15);
+  /* Magenta = the one color reserved for the single primary action per
+     screen (Mở file/Lưu/Thêm mới...), so it stays meaningful instead of
+     being everywhere. */
+  --primary: #ff2fd6;
+  --primary-hover: #ff5fe0;
+  --primary-soft: rgba(255, 47, 214, 0.15);
+  --success: #00ffa3;
+  --danger: #ff2952;
+  --danger-hover: #ff5577;
+  --danger-soft: rgba(255, 41, 82, 0.12);
+  /* Reusable neon glow shadows - layered on top of hover/focus states
+     instead of relying on background-color changes alone, so interactive
+     elements visibly "light up" the way HUD/circuit UI does. */
+  --glow-accent: 0 0 6px rgba(0, 240, 255, 0.55), 0 0 18px rgba(0, 240, 255, 0.25);
+  --glow-primary: 0 0 6px rgba(255, 47, 214, 0.55), 0 0 18px rgba(255, 47, 214, 0.25);
+  --glow-danger: 0 0 6px rgba(255, 41, 82, 0.55), 0 0 18px rgba(255, 41, 82, 0.25);
+  /* Faint cyan grid overlay - reused by body/#content, see below. Kept as a
+     variable so both call sites stay in sync instead of duplicating it. */
+  --grid-overlay:
+    repeating-linear-gradient(0deg, rgba(0, 240, 255, 0.035) 0, rgba(0, 240, 255, 0.035) 1px, transparent 1px, transparent 40px),
+    repeating-linear-gradient(90deg, rgba(0, 240, 255, 0.035) 0, rgba(0, 240, 255, 0.035) 1px, transparent 1px, transparent 40px);
   /* Per-action colors so Sửa/Nhân bản/Xóa/Áp dụng/Bỏ lọc/Reload/Export are
      each visually distinct at rest, not just on hover. -soft/-border are
      precomputed rgba() of the same hue (kept plain rgba to match
      --accent-soft/--danger-soft already above, instead of color-mix()). */
-  --edit: #f59e0b;
-  --edit-soft: rgba(245, 158, 11, 0.12);
-  --edit-border: rgba(245, 158, 11, 0.45);
-  --duplicate: #a855f7;
-  --duplicate-soft: rgba(168, 85, 247, 0.12);
-  --duplicate-border: rgba(168, 85, 247, 0.45);
-  --reload: #06b6d4;
-  --reload-soft: rgba(6, 182, 212, 0.12);
-  --reload-border: rgba(6, 182, 212, 0.45);
-  --export: #3b82f6;
-  --export-soft: rgba(59, 130, 246, 0.12);
-  --export-border: rgba(59, 130, 246, 0.45);
-  --import: #14b8a6;
-  --import-soft: rgba(20, 184, 166, 0.12);
-  --import-border: rgba(20, 184, 166, 0.45);
-  --success-soft: rgba(34, 197, 94, 0.12);
-  --success-border: rgba(34, 197, 94, 0.45);
-  --clear: #94a3b8;
-  --clear-soft: rgba(148, 163, 184, 0.12);
-  --clear-border: rgba(148, 163, 184, 0.45);
-  --radius-sm: 6px;
-  --radius: 8px;
-  --radius-lg: 12px;
-  --shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --edit: #ffb020;
+  --edit-soft: rgba(255, 176, 32, 0.12);
+  --edit-border: rgba(255, 176, 32, 0.45);
+  --duplicate: #b026ff;
+  --duplicate-soft: rgba(176, 38, 255, 0.12);
+  --duplicate-border: rgba(176, 38, 255, 0.45);
+  --reload: #00d9c0;
+  --reload-soft: rgba(0, 217, 192, 0.12);
+  --reload-border: rgba(0, 217, 192, 0.45);
+  --export: #4d6fff;
+  --export-soft: rgba(77, 111, 255, 0.12);
+  --export-border: rgba(77, 111, 255, 0.45);
+  --import: #00e5c7;
+  --import-soft: rgba(0, 229, 199, 0.12);
+  --import-border: rgba(0, 229, 199, 0.45);
+  --success-soft: rgba(0, 255, 163, 0.12);
+  --success-border: rgba(0, 255, 163, 0.45);
+  --clear: #7d96a8;
+  --clear-soft: rgba(125, 150, 168, 0.12);
+  --clear-border: rgba(125, 150, 168, 0.45);
+  /* Sharper, more angular corners - part of the "circuit board" look. */
+  --radius-sm: 3px;
+  --radius: 4px;
+  --radius-lg: 6px;
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.35), 0 0 16px rgba(0, 240, 255, 0.05);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 240, 255, 0.06);
 }
 
 /* Themed scrollbars (default browser scrollbar is light/chunky and clashes
@@ -63,14 +85,18 @@ html {
 *::-webkit-scrollbar { width: 10px; height: 10px; }
 *::-webkit-scrollbar-track { background: transparent; }
 *::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
-*::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+*::-webkit-scrollbar-thumb:hover { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
 *::-webkit-scrollbar-corner { background: transparent; }
 
 html, body { height: 100%; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   margin: 0;
-  background: var(--bg);
+  /* Faint cyan grid ("circuit board") overlay on top of the solid dark
+     background - --grid-overlay is reused on #content below so it's
+     visible everywhere, not just where body's own background peeks through. */
+  background-color: var(--bg);
+  background-image: var(--grid-overlay);
   color: var(--text);
   display: flex;
   flex-direction: column;
@@ -83,15 +109,32 @@ body {
    the remaining height with flex-basis instead of a hardcoded height, so
    neither state needs JS to resize anything beyond toggling one class. */
 #connect-panel {
+  position: relative;
   flex: 1 1 auto;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px 16px;
   min-height: 0;
+  overflow: hidden;
   transition: flex-basis 0.15s ease;
 }
+/* Ambient cyan/magenta glow blobs behind the welcome card - purely
+   decorative, clipped by #connect-panel's overflow:hidden, never intercepts
+   clicks (pointer-events:none) so it can't interfere with the form. */
+#connect-panel::before {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(circle at 18% 25%, rgba(0, 240, 255, 0.14), transparent 42%),
+    radial-gradient(circle at 82% 75%, rgba(255, 47, 214, 0.14), transparent 42%);
+  pointer-events: none;
+  z-index: 0;
+}
 .connect-card {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 460px;
   background: var(--bg-panel);
@@ -101,8 +144,13 @@ body {
   box-shadow: var(--shadow-lg);
 }
 .brand { display: flex; align-items: center; gap: 10px; }
-.brand-mark { color: var(--accent); display: flex; }
-.brand-name { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+.brand-mark { color: var(--accent); display: flex; filter: drop-shadow(0 0 4px var(--accent)); }
+.brand-name {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-shadow: 0 0 16px var(--accent-soft);
+}
 .connect-hero-text { color: var(--text-muted); font-size: 13px; margin: 10px 0 24px; line-height: 1.5; }
 .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
 .field label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
@@ -160,7 +208,7 @@ input[type="text"] {
   transition: border-color 0.12s ease;
 }
 input[type="text"]::placeholder { color: var(--text-muted); }
-input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+input[type="text"]:focus { border-color: var(--accent); box-shadow: var(--glow-accent); }
 
 .btn {
   display: inline-flex;
@@ -177,24 +225,25 @@ input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px va
   transition: background-color 0.12s ease, border-color 0.12s ease, opacity 0.12s ease;
   white-space: nowrap;
 }
-.btn-primary { background: var(--accent); color: white; }
-.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary { background: var(--primary); color: #05050a; font-weight: 600; }
+.btn-primary:hover { background: var(--primary-hover); box-shadow: var(--glow-primary); }
 .btn-ghost { background: transparent; color: var(--text); border-color: var(--border); }
-.btn-ghost:hover { background: var(--bg-hover); }
+.btn-ghost:hover { background: var(--bg-hover); border-color: var(--accent); }
 .btn-block { width: 100%; }
-.btn-danger { background: var(--danger); color: white; }
-.btn-danger:hover { background: var(--danger-hover); }
+.btn-danger { background: var(--danger); color: #05050a; font-weight: 600; }
+.btn-danger:hover { background: var(--danger-hover); box-shadow: var(--glow-danger); }
 
 /* Ghost buttons keep their neutral border/shape, just tint text + border
-   with the action's own color so each reads distinctly at rest. */
+   with the action's own color so each reads distinctly at rest; hover adds
+   a matching neon glow instead of just a background tint. */
 .btn-apply { color: var(--success); border-color: var(--success-border); }
-.btn-apply:hover { background: var(--success-soft); border-color: var(--success); }
+.btn-apply:hover { background: var(--success-soft); border-color: var(--success); box-shadow: 0 0 12px var(--success-soft); }
 .btn-clear { color: var(--clear); border-color: var(--clear-border); }
 .btn-clear:hover { background: var(--clear-soft); border-color: var(--clear); }
 .btn-export { color: var(--export); border-color: var(--export-border); }
-.btn-export:hover { background: var(--export-soft); border-color: var(--export); }
+.btn-export:hover { background: var(--export-soft); border-color: var(--export); box-shadow: 0 0 12px var(--export-border); }
 .btn-import { color: var(--import); border-color: var(--import-border); }
-.btn-import:hover { background: var(--import-soft); border-color: var(--import); }
+.btn-import:hover { background: var(--import-soft); border-color: var(--import); box-shadow: 0 0 12px var(--import-border); }
 
 .icon-btn {
   display: inline-flex;
@@ -210,15 +259,15 @@ input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px va
   cursor: pointer;
   transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
 }
-.icon-btn:hover { background: var(--bg-hover); color: var(--text); }
+.icon-btn:hover { background: var(--bg-hover); color: var(--text); border-color: var(--accent); }
 .icon-btn-edit { color: var(--edit); }
-.icon-btn-edit:hover { background: var(--edit-soft); border-color: var(--edit); }
+.icon-btn-edit:hover { background: var(--edit-soft); border-color: var(--edit); box-shadow: 0 0 10px var(--edit-border); }
 .icon-btn-duplicate { color: var(--duplicate); }
-.icon-btn-duplicate:hover { background: var(--duplicate-soft); border-color: var(--duplicate); }
+.icon-btn-duplicate:hover { background: var(--duplicate-soft); border-color: var(--duplicate); box-shadow: 0 0 10px var(--duplicate-border); }
 .icon-btn-danger { color: var(--danger); }
-.icon-btn-danger:hover { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); }
+.icon-btn-danger:hover { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); box-shadow: var(--glow-danger); }
 .icon-btn-reload { color: var(--reload); }
-.icon-btn-reload:hover { background: var(--reload-soft); border-color: var(--reload); }
+.icon-btn-reload:hover { background: var(--reload-soft); border-color: var(--reload); box-shadow: 0 0 10px var(--reload-border); }
 
 .search-wrap { position: relative; display: flex; align-items: center; }
 .search-wrap .search-icon { position: absolute; left: 9px; color: var(--text-muted); pointer-events: none; }
@@ -234,6 +283,7 @@ html.connected main { flex: 1 1 auto; }
   flex-direction: column;
   min-height: 0;
   border-right: 1px solid var(--border);
+  box-shadow: 1px 0 0 rgba(0, 240, 255, 0.06);
   background: var(--bg-panel);
   transition: flex-basis 0.15s ease;
 }
@@ -260,16 +310,26 @@ html.connected main { flex: 1 1 auto; }
 .class-item.active {
   background: var(--accent-soft);
   border-left-color: var(--accent);
+  box-shadow: 0 0 10px var(--accent-soft);
   color: var(--text);
   font-weight: 600;
 }
 
-#content { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; background: var(--bg); }
+#content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+  background-color: var(--bg);
+  background-image: var(--grid-overlay);
+}
 #toolbar {
   flex: 0 0 auto;
   padding: 10px 14px;
   background: var(--bg-panel);
   border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 0 rgba(0, 240, 255, 0.08);
   display: flex;
   gap: 8px;
   align-items: center;
@@ -280,8 +340,11 @@ html.connected main { flex: 1 1 auto; }
 
 #loading-bar { height: 2px; flex: 0 0 auto; background: transparent; }
 #loading-bar.active {
-  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  /* Cyan-to-magenta sweep - reads like a scanning laser line, matching both
+     accent colors instead of picking just one. */
+  background: linear-gradient(90deg, transparent, var(--accent), var(--primary), transparent);
   background-size: 200% 100%;
+  box-shadow: 0 0 8px var(--accent-soft);
   animation: loading-sweep 1s linear infinite;
 }
 @keyframes loading-sweep {
@@ -317,14 +380,26 @@ th {
   position: sticky;
   top: 0;
   z-index: 1;
+  border-bottom: 1px solid var(--accent-soft);
 }
 th:first-child { border-top-left-radius: var(--radius); }
 th:last-child { border-top-right-radius: var(--radius); }
 tbody tr:hover { background: var(--bg-hover); }
 tbody tr:last-child td { border-bottom: none; }
 .row-actions { display: flex; gap: 4px; }
-.select-col { width: 1%; white-space: nowrap; }
-.select-col input[type="checkbox"], .row-select-checkbox { cursor: pointer; }
+.select-col { width: 1%; white-space: nowrap; text-align: center; }
+
+/* accent-color nhuộm lại checkbox theo theme tối thay vì màu xanh mặc định
+   của OS - cùng kỹ thuật đã dùng cho radio-option bên dưới. */
+input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent);
+  cursor: pointer;
+  vertical-align: middle;
+}
+input[type="checkbox"]:disabled { cursor: not-allowed; opacity: 0.5; }
+input[type="checkbox"]:indeterminate { accent-color: var(--text-muted); }
 
 .empty-cell { text-align: center; padding: 32px 12px; color: var(--text-muted); white-space: normal; }
 .empty-state {
@@ -347,9 +422,9 @@ tbody tr:last-child td { border-bottom: none; }
    span front-loads the color change, so it visually "disappears" well
    before the animation actually finishes. */
 @keyframes row-highlight-fade {
-  0% { background-color: rgba(34, 197, 94, 0.35); }
-  70% { background-color: rgba(34, 197, 94, 0.35); }
-  100% { background-color: transparent; }
+  0% { background-color: rgba(0, 255, 163, 0.3); box-shadow: inset 0 0 12px rgba(0, 255, 163, 0.25); }
+  70% { background-color: rgba(0, 255, 163, 0.3); box-shadow: inset 0 0 12px rgba(0, 255, 163, 0.25); }
+  100% { background-color: transparent; box-shadow: none; }
 }
 tr.row-highlight { animation: row-highlight-fade 3s ease-in; }
 
@@ -435,7 +510,17 @@ tr.row-highlight { animation: row-highlight-fade 3s ease-in; }
   z-index: 400;
   padding: 16px;
 }
-.error-title { margin: 0 0 12px; font-size: 15px; font-weight: 600; color: var(--danger); }
+/* Error dialog reuses .confirm-card but gets its own red alert glow instead
+   of the ambient cyan glow every other panel inherits from --shadow-lg -
+   makes a failure visually distinct from a routine confirmation at a glance. */
+#error-overlay .confirm-card { box-shadow: var(--shadow-lg), 0 0 32px rgba(255, 41, 82, 0.18); }
+.error-title {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--danger);
+  text-shadow: 0 0 12px var(--danger-soft);
+}
 #error-message { margin: 0 0 20px; font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
 
 /* ---------- Export/Import dialogs (shared look) ---------- */
@@ -486,13 +571,13 @@ tr.row-highlight { animation: row-highlight-fade 3s ease-in; }
   pointer-events: none;
 }
 .toast {
-  background: #142b1c;
-  color: #d9f5db;
-  border: 1px solid rgba(34, 197, 94, 0.35);
+  background: #06231c;
+  color: #baffe6;
+  border: 1px solid var(--success-border);
   padding: 10px 16px;
   border-radius: var(--radius);
   font-size: 13px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow), 0 0 16px var(--success-soft);
   max-width: 360px;
   animation: toast-lifecycle 3s ease forwards;
 }
