@@ -22,7 +22,7 @@ test app Swift — **không phải sản phẩm production**. Repo:
   không Tailwind, không CDN font, không framework, không build step — CSS/JS
   tự viết tay. CSV parser/writer, "Excel" export (SpreadsheetML XML, không
   phải `.xlsx` thật) đều tự viết để tránh thêm lib.
-- **Frontend là 8 file `<script>` cổ điển (KHÔNG phải ES module).** Xem mục
+- **Frontend là 7 file `<script>` cổ điển (KHÔNG phải ES module).** Xem mục
   "Kiến trúc frontend" bên dưới — đừng đổi sang `type="module"` mà không đọc
   kỹ lý do (ảnh hưởng tới cách viết test bằng `vm`).
 - **Mọi text hiển thị cho user phải là tiếng Việt có dấu đầy đủ** — kể cả
@@ -69,9 +69,9 @@ src/
                         file tại 1 thời điểm, mở file mới tự đóng file cũ.
                         Export: openRealm, closeRealm, getSchema, findSchema,
                         assertOpen, listObjects, countObjects, createObject,
-                        updateObject, deleteObject, writeSnapshot. KHÔNG
-                        export toClientSchema/serializeObject/buildWriteValues
-                        nữa (đã tách sang valueConversion.js — xem bên dưới).
+                        updateObject, deleteObject. KHÔNG export
+                        toClientSchema/serializeObject/buildWriteValues nữa
+                        (đã tách sang valueConversion.js — xem bên dưới).
   valueConversion.js   Hàm THUẦN (pure), không đụng currentRealm: SIMPLE_TYPES,
                         toClientSchema, serializeValue, serializeObject,
                         coerceValue, buildWriteValues. Tách riêng khỏi
@@ -97,17 +97,6 @@ src/
                         CSV, Markdown, "Excel" (thực chất SpreadsheetML 2003
                         XML — Excel/Numbers/Sheets mở được, không phải .xlsx
                         thật, tránh thêm dependency).
-  snapshotService.js   createSnapshot() -> ghi 1 bản copy TOÀN BỘ realm đang
-                        mở (mọi table, không lọc/scope được như export) vào
-                        snapshots/ (gitignored), tên
-                        {tên file .realm đang mở}_yyyymmdd_hhmmss.realm. Dùng
-                        realm.writeCopyTo() (API có sẵn của realm-js, xem
-                        realmService.writeSnapshot) — tự động dùng CÙNG
-                        encryption key với file đang mở nên Realm Swift mở
-                        lại được ngay bằng key/Keychain hiện có, không cần
-                        đổi gì bên app Swift. writeCopyTo() đòi hỏi đường dẫn
-                        đích CHƯA tồn tại — xem gotcha #11 nếu sửa test liên
-                        quan tới file này.
   logger.js            createLogger() — 1 file log/lần chạy server tại
                         logs/app-<iso-timestamp>.log (gitignored).
 
@@ -115,11 +104,8 @@ public/
   index.html           1 trang duy nhất (không SPA router). Chứa TẤT CẢ
                         overlay/dialog dưới dạng <div hidden>: edit-overlay
                         (Thêm mới/Sửa/Nhân bản dùng chung), confirm-overlay,
-                        error-overlay, import-overlay, export-overlay,
-                        troll-paywall-overlay/troll-quiz-overlay (đùa, xem
-                        public/js/troll.js). Nút #snapshot-btn nằm trong
-                        #open-form, ngay sau nút "Mở file". Thứ tự
-                        8 <script src="js/*.js"> ở cuối file CÓ Ý NGHĨA — xem
+                        error-overlay, import-overlay, export-overlay. Thứ tự
+                        7 <script src="js/*.js"> ở cuối file CÓ Ý NGHĨA — xem
                         "Kiến trúc frontend" bên dưới, đừng sắp xếp lại tuỳ
                         tiện.
   style.css            Design token trong :root (--bg, --accent, --danger,
@@ -131,21 +117,17 @@ public/
                         overlay: edit=100, export/import=200, confirm=300,
                         error=400 (error luôn phải cao nhất vì lỗi có thể xảy
                         ra khi bất kỳ overlay nào khác đang mở).
-  js/                  Xem "Kiến trúc frontend" — 8 file, KHÔNG phải ES
+  js/                  Xem "Kiến trúc frontend" — 7 file, KHÔNG phải ES
                         module, chia sẻ 1 global scope.
 
 test/
-  fixtures/buildFixture.js   Tạo 1 file .realm tạm (mkdtemp) TÊN CỐ ĐỊNH
-                              "fixture.realm" với encryption key ngẫu nhiên,
-                              2 class: Person (có primaryKey 'id', 2 record
-                              p1/p2) và Note (KHÔNG primaryKey, 2 record
-                              "First"/"Second" theo đúng thứ tự tạo — nhiều
-                              test dựa vào thứ tự này cho __ref index). MỌI
-                              test file dùng chung tên "fixture" này — xem
-                              gotcha #11 nếu file đích được đặt tên DỰA VÀO
-                              tên nguồn (như snapshotService).
+  fixtures/buildFixture.js   Tạo 1 file .realm tạm (mkdtemp) với encryption
+                              key ngẫu nhiên, 2 class: Person (có primaryKey
+                              'id', 2 record p1/p2) và Note (KHÔNG primaryKey,
+                              2 record "First"/"Second" theo đúng thứ tự tạo
+                              — nhiều test dựa vào thứ tự này cho __ref index).
   realmService.test.js, importService.test.js, exportService.test.js,
-  snapshotService.test.js, e2e.test.js, logger.test.js, logging.test.js
+  e2e.test.js, logger.test.js, logging.test.js
                         Test thật (KHÔNG mock Realm) — mở file .realm tạm
                         thật, gọi qua src/*.js hoặc qua HTTP thật (e2e.test.js
                         dùng createApp() + fetch thật). `npm test` = `node
@@ -161,18 +143,18 @@ docs/superpowers/       Spec/plan cũ từ giai đoạn brainstorm/build ban đ�
                         (code là nguồn sự thật — spec có thể đã lệch so với
                         implementation qua các lần sửa sau đó).
 
-exports/, logs/,        Gitignored, tự sinh lúc chạy. *.realm, *.realm.lock,
-snapshots/              *.realm.management/ cũng gitignored (fixture test tạo
+exports/, logs/         Gitignored, tự sinh lúc chạy. *.realm, *.realm.lock,
+                        *.realm.management/ cũng gitignored (fixture test tạo
                         trong os.tmpdir(), không phải ở đây).
 ```
 
 ## Kiến trúc frontend (public/js/)
 
-8 file, MỖI FILE LÀ 1 `<script src="...">` CỔ ĐIỂN (không `type="module"`),
+7 file, MỖI FILE LÀ 1 `<script src="...">` CỔ ĐIỂN (không `type="module"`),
 load theo đúng thứ tự khai báo trong `index.html`:
 
 ```
-core.js → sidebar.js → connection.js → table.js → editForm.js → importExport.js → troll.js → main.js
+core.js → sidebar.js → connection.js → table.js → editForm.js → importExport.js → main.js
 ```
 
 **Vì sao không dùng ES module:** toàn bộ session build tool này đã dùng 1 kỹ
@@ -187,7 +169,7 @@ phức tạp hơn nhiều). Giữ classic script để kỹ thuật test này ti
 
 **Vì sao thứ tự file (phần lớn) không quan trọng dù chia sẻ 1 scope:** các
 file gọi hàm của nhau CHỈ bên trong closure (event handler / thân hàm async),
-được resolve lúc người dùng thao tác thật — tức là SAU KHI toàn bộ 8 script
+được resolve lúc người dùng thao tác thật — tức là SAU KHI toàn bộ 7 script
 đã chạy xong tuần tự. Ví dụ `table.js` gọi `openEditForm(row)` (định nghĩa ở
 `editForm.js`, load SAU `table.js`) bên trong 1 `addEventListener('click', …)`
 — hợp lệ vì `openEditForm` đã tồn tại trong global scope từ trước khi user
@@ -202,11 +184,10 @@ kịp click bất cứ gì.
   localStorage, cần MỌI hàm khác (openConnection ở connection.js,
   renderClassList ở sidebar.js, v.v.) đã tồn tại.
 
-Giữa `sidebar.js`/`connection.js`/`table.js`/`editForm.js`/`importExport.js`/
-`troll.js`: thứ tự không quan trọng về mặt chạy đúng, nhưng thứ tự hiện tại
-được sắp theo luồng phụ thuộc logic (connection load data → table hiển thị
-data → editForm sửa data → importExport nhập/xuất data → troll đùa sau khi
-editForm lưu) để dễ đọc.
+Giữa `sidebar.js`/`connection.js`/`table.js`/`editForm.js`/`importExport.js`:
+thứ tự không quan trọng về mặt chạy đúng, nhưng thứ tự hiện tại được sắp theo
+luồng phụ thuộc logic (connection load data → table hiển thị data → editForm
+sửa data → importExport nhập/xuất data) để dễ đọc.
 
 **Nội dung từng file** (đọc trực tiếp file để biết chi tiết, đây chỉ là mục
 lục):
@@ -219,10 +200,7 @@ lục):
   `showError`, `showConfirm`.
 - `sidebar.js` — danh sách table bên trái + tìm kiếm + đếm số record/table.
 - `connection.js` — mở file, chọn table, load/phân trang record
-  (`loadObjects`/`loadMoreObjects`), đồng bộ URL query string (`?class=&filter=`) để F5 giữ nguyên view. Cũng chứa nút Snapshot
-  (`#snapshot-btn` — chỉ hiện sau khi `openConnection` thành công, POST
-  `/api/snapshot`, không phụ thuộc table nào đang chọn vì snapshot là toàn
-  bộ realm).
+  (`loadObjects`/`loadMoreObjects`), đồng bộ URL query string (`?class=&filter=`) để F5 giữ nguyên view.
 - `table.js` — vẽ bảng (`renderTable`), checkbox chọn từng dòng + chọn tất
   cả, xóa 1 dòng (`deleteRow`), xóa hàng loạt (`bulkDeleteSelected`).
 - `editForm.js` — modal Thêm mới/Sửa/Nhân bản dùng CHUNG 1 form
@@ -233,15 +211,6 @@ lục):
 - `importExport.js` — modal Export (CSV/Excel/Markdown, phạm vi dữ liệu hiện
   tại/toàn bộ) và Import (CSV, chế độ Ghi đè/Thêm mới, cảnh báo khi tên file
   không khớp tên table qua `fileNameMatchesTable`).
-- `troll.js` — TRÒ ĐÙA đồng nghiệp, KHÔNG phải tính năng thật, không ảnh
-  hưởng dữ liệu/logic chính. Sau lần "Lưu" thành công thứ 3
-  (`notifyEditFormSaved()`, gọi từ `editForm.js`), hiện modal giả "hết hạn
-  dùng thử" → câu đố đạo hàm 4 đáp án, sai thì chê + rung, đúng thì thôi.
-  Chỉ trigger ĐÚNG 1 LẦN DUY NHẤT nhờ cờ `localStorage['ec51RealmStudio.trollShown']` (sống sót qua F5) — đánh dấu ngay lúc modal HIỆN RA, không đợi
-  giải xong. Nếu user muốn gỡ trò đùa này: xoá `<script src="js/troll.js">`
-  trong `index.html`, xoá lời gọi `notifyEditFormSaved()` trong
-  `editForm.js`, xoá file `troll.js` và 2 overlay `troll-*` trong
-  `index.html` — không đụng gì khác.
 - `main.js` — bootstrap, tự mở lại file/key đã lưu.
 
 ## Các bất biến/gotcha quan trọng (đọc trước khi sửa phần liên quan)
@@ -294,21 +263,6 @@ lục):
    lúc nào, kể cả khi overlay khác đang mở.
 10. **Không có file `.env`, không dùng `dotenv`.** Cấu hình duy nhất là biến
     môi trường `PORT` đọc trực tiếp trong `server.js` (`process.env.PORT || 4848`).
-11. **`test/fixtures/buildFixture.js` LUÔN đặt tên file là "fixture.realm"**
-    cho MỌI test file dùng nó. Nếu 1 tính năng đặt tên file ĐẦU RA dựa theo
-    tên file NGUỒN + timestamp giây (như `snapshotService.js`), nhiều test
-    trong CÙNG 1 file chạy tuần tự nhưng rất nhanh (vài chục ms/test) hoàn
-    toàn có thể rơi vào ĐÚNG 1 GIÂY và tính ra CÙNG 1 tên file đích. Nếu
-    không dọn dẹp file đó NGAY trong `t.after()` của TỪNG test (mà dồn lại
-    dọn 1 lần ở cuối file), test sau sẽ ghi đè lên file `.realm` của test
-    trước — đã từng gây crash NATIVE thật sự ("Decryption failed: page 0 ...
-    a write was begun"), không phải lỗi JS bắt được. Xem
-    `test/snapshotService.test.js` (`cleanupSnapshotFile`, dọn cả
-    `.lock`/`.management`/`.note`) làm mẫu nếu viết thêm test kiểu này.
-12. **Checkbox/radio dùng `appearance: none` tự vẽ hoàn toàn**, KHÔNG chỉ
-    dựa vào `accent-color` — `accent-color` chỉ đổi màu lúc ĐÃ chọn, lúc CHƯA
-    chọn vẫn là ô vuông/vòng tròn trắng mặc định của OS (đã từng bị báo lạc
-    quẻ với theme tối). Xem `input[type="checkbox"]`/`.radio-option input[type="radio"]` trong `style.css` (dùng `::after` vẽ dấu tick/chấm tròn).
 
 ## Cách verify khi sửa frontend (public/js/*.js)
 
@@ -322,7 +276,7 @@ commit) để verify bằng kỹ thuật "mocked browser chạy code thật":
    nên auto-vivify element giả có `classList`, `dataset`, `addEventListener`/
    `dispatchEvent`, `querySelector(All)` tree-based, `innerHTML` setter phải
    RESET `_children` — bug hay gặp nếu quên).
-2. Load 8 file theo ĐÚNG thứ tự trong `index.html` bằng nhiều lệnh
+2. Load 7 file theo ĐÚNG thứ tự trong `index.html` bằng nhiều lệnh
    `vm.runInContext(fs.readFileSync(...), sandbox)` liên tiếp trên CÙNG 1
    `sandbox` — biến `let`/`const` top-level của file trước vẫn tồn tại khi
    file sau chạy (Node vm giữ chung 1 global lexical scope cho 1 context qua
@@ -354,18 +308,9 @@ gần như nguyên xi.
 
 ## Quy ước UI đã thiết lập (giữ nhất quán khi thêm tính năng mới)
 
-- Theme: neon cyberpunk (cyan `--accent` #00f0ff cho viền/focus/active/brand,
-  magenta `--primary` #ff2fd6 CHỈ dành cho nút hành động chính mỗi màn hình)
-  trên nền đen tuyền `--bg` #05050a — KHÔNG còn là theme "Linear/Vercel" tông
-  indigo trung tính như bản redesign đầu tiên, đã đổi hẳn sang hướng này theo
-  yêu cầu user. Design token ở `:root` trong `style.css`. Bo góc CỐ Ý nhỏ
-  (`--radius-sm/--radius/--radius-lg` chỉ 3/4/6px) cho cảm giác "circuit
-  board" sắc cạnh. `.btn-primary`/`.btn-danger` là kiểu "biển neon" (nền kính
-  mờ + viền phát sáng + chữ có text-shadow), KHÔNG phải fill đặc 1 màu — đã
-  đổi từ fill đặc sang kiểu này vì fill đặc + chữ đen bị chê "xấu". Mỗi hành
-  động khác (edit/duplicate/reload/export/import/clear/danger) có màu riêng
-  qua class `.btn-*`/`.icon-btn-*`, tất cả có glow (`box-shadow`) khi hover.
-  `body`/`#content` có 1 lớp lưới kẻ mờ (`--grid-overlay`) phủ nền.
+- Theme tối kiểu dev tool (Linear/Vercel/Supabase Studio), design token ở
+  `:root` trong `style.css`, mỗi hành động (edit/duplicate/reload/export/
+  import/clear/danger) có màu riêng qua class `.btn-*`/`.icon-btn-*`.
 - Toast (tự biến mất) cho THÀNH CÔNG, dialog lỗi tự vẽ (chặn tới khi bấm OK)
   cho THẤT BẠI — áp dụng cho MỌI thao tác, không có ngoại lệ kiểu "lỗi nhỏ
   thì bỏ qua im lặng".

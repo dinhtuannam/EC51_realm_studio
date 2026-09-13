@@ -28,14 +28,6 @@ Không dùng cho production — chỉ để dev tự kiểm tra dữ liệu trê
    (lưu trong localStorage của trình duyệt) — không cần nhập lại.
 6. Để tắt server: đóng cửa sổ Terminal đang chạy (hoặc bấm Ctrl+C trong đó).
 
-## Snapshot
-
-Nút **Snapshot** cạnh **Mở file** lưu 1 bản copy toàn bộ dữ liệu hiện tại
-thành file `.realm` mới trong thư mục `snapshots/` (không commit vào git),
-tên `{tên file đang mở}_yyyymmdd_hhmmss.realm`. File này dùng chung
-encryption key với file đang mở, nên mở lại được trực tiếp bằng Realm Swift
-với đúng key hiện có mà không cần đổi gì.
-
 ## Chạy test
 
 ```bash

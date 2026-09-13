@@ -4,7 +4,6 @@ const express = require('express');
 const realmService = require('./realmService');
 const exportService = require('./exportService');
 const importService = require('./importService');
-const snapshotService = require('./snapshotService');
 
 const router = express.Router();
 
@@ -27,10 +26,6 @@ router.post('/open', handle(async (req) => {
 router.post('/close', handle(async () => {
   realmService.closeRealm();
   return {};
-}));
-
-router.post('/snapshot', handle(async () => {
-  return snapshotService.createSnapshot();
 }));
 
 router.get('/schema', handle(async () => ({ schema: realmService.getSchema() })));
