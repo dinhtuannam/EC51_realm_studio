@@ -27,6 +27,23 @@ test('openRealm: sai key bao loi, dung key tra ve schema dung', async (t) => {
   assert.equal(noteSchema.primaryKey, null);
 });
 
+test('openRealm: mo lai that bai khong duoc lam mat file dang mo hop le', async (t) => {
+  const { filePath, encryptionKeyHex, dir } = await buildFixtureRealm();
+  t.after(() => {
+    realmService.closeRealm();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  await realmService.openRealm(filePath, encryptionKeyHex);
+  assert.equal(realmService.listObjects('Person', '').total, 2);
+
+  const wrongKeyHex = '00'.repeat(64);
+  await assert.rejects(() => realmService.openRealm(filePath, wrongKeyHex));
+
+  // The original, still-valid realm must remain open and usable, not orphaned.
+  assert.equal(realmService.listObjects('Person', '').total, 2);
+});
+
 test('listObjects: tra dung record, __ref, filter RQL', async (t) => {
   const { filePath, encryptionKeyHex, dir } = await buildFixtureRealm();
   t.after(() => {

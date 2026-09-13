@@ -47,10 +47,15 @@ async function openRealm(filePath, encryptionKeyHex) {
     throw err;
   }
   const encryptionKey = parseEncryptionKey(encryptionKeyHex);
-  if (currentRealm && !currentRealm.isClosed) {
-    currentRealm.close();
+  // Don't touch currentRealm until the new open succeeds - if Realm.open
+  // rejects (wrong key/path/incompatible file), the previously-open realm
+  // must stay usable instead of being orphaned as closed-but-still-referenced.
+  const previousRealm = currentRealm;
+  const nextRealm = await Realm.open({ path: filePath, encryptionKey });
+  if (previousRealm && !previousRealm.isClosed) {
+    previousRealm.close();
   }
-  currentRealm = await Realm.open({ path: filePath, encryptionKey });
+  currentRealm = nextRealm;
   return { schema: getSchema() };
 }
 
