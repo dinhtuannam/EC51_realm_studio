@@ -3,7 +3,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 const { createApp } = require('../src/app');
 const realmService = require('../src/realmService');
@@ -67,7 +66,7 @@ test('HTTP API end-to-end: open, schema, CRUD qua HTTP that su', async (t) => {
   assert.equal(exportRes.status, 200);
   assert.equal(exportBody.ok, true);
   assert.equal(exportBody.data.rowCount, 2);
-  const exportedPath = require('path').join(EXPORT_DIR, exportBody.data.fileName);
+  const exportedPath = path.join(EXPORT_DIR, exportBody.data.fileName);
   assert.ok(fs.existsSync(exportedPath), 'exported file should actually exist on disk');
   fs.rmSync(exportedPath, { force: true });
 
@@ -80,13 +79,11 @@ test('HTTP API end-to-end: open, schema, CRUD qua HTTP that su', async (t) => {
   assert.equal(badFormatRes.status, 400);
   assert.equal(badFormatBody.ok, false);
 
-  const csvDir = fs.mkdtempSync(path.join(os.tmpdir(), 'realm-dev-tool-e2e-import-'));
-  const csvPath = path.join(csvDir, 'import.csv');
-  fs.writeFileSync(csvPath, 'id,name,age,active\np9,Zed,50,true\n', 'utf8');
+  const csvContent = 'id,name,age,active\np9,Zed,50,true\n';
   const importRes = await fetch(`${base}/api/objects/Person/import`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ filePath: csvPath, mode: 'append' }),
+    body: JSON.stringify({ csvContent, mode: 'append' }),
   });
   const importBody = await importRes.json();
   assert.equal(importRes.status, 200);
@@ -96,17 +93,14 @@ test('HTTP API end-to-end: open, schema, CRUD qua HTTP that su', async (t) => {
   const afterImportBody = await afterImportRes.json();
   assert.equal(afterImportBody.data.total, 3, 'the imported row must be visible alongside the original 2');
 
-  // Mode is validated before the file is even read, so this still returns a
-  // clean 400 rather than a file-not-found error.
   const badModeRes = await fetch(`${base}/api/objects/Person/import`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ filePath: csvPath, mode: 'merge' }),
+    body: JSON.stringify({ csvContent, mode: 'merge' }),
   });
   const badModeBody = await badModeRes.json();
   assert.equal(badModeRes.status, 400);
   assert.equal(badModeBody.ok, false);
-  fs.rmSync(csvDir, { recursive: true, force: true });
 
   const createRes = await fetch(`${base}/api/objects/Person`, {
     method: 'POST',

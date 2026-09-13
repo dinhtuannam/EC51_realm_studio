@@ -479,9 +479,34 @@ el('export-confirm').addEventListener('click', async () => {
 
 const IMPORT_MODE_IDS = { append: 'import-mode-append', overwrite: 'import-mode-overwrite' };
 
+// Browser (trình duyệt) không cho JS lấy đường dẫn tuyệt đối thật của file
+// chọn qua <input type="file"> (lý do bảo mật) - chỉ có tên file. Nên thay
+// vì "path", ta đọc thẳng NỘI DUNG file trong trình duyệt (file.text()) và
+// gửi content đó lên server để import, không cần biết path thật ở đâu.
+let importCsvContent = null;
+
+el('import-browse').addEventListener('click', () => {
+  el('import-file-input').click();
+});
+
+el('import-file-input').addEventListener('change', async () => {
+  const file = el('import-file-input').files[0];
+  if (!file) return;
+  el('import-file-name').textContent = file.name;
+  try {
+    importCsvContent = await file.text();
+  } catch (err) {
+    importCsvContent = null;
+    el('import-file-name').textContent = 'Chưa chọn file';
+    showError(`Không đọc được file: ${err.message}`);
+  }
+});
+
 el('import-data').addEventListener('click', () => {
   if (!state.currentClass) return;
-  el('import-file-path').value = '';
+  importCsvContent = null;
+  el('import-file-name').textContent = 'Chưa chọn file';
+  el('import-file-input').value = ''; // để chọn lại đúng file cũ vẫn bắn 'change'
   el(IMPORT_MODE_IDS.append).checked = true;
   el(IMPORT_MODE_IDS.overwrite).checked = false;
   el('import-overlay').hidden = false;
@@ -496,9 +521,8 @@ el('import-overlay').addEventListener('click', (e) => {
 });
 
 el('import-confirm').addEventListener('click', async () => {
-  const filePath = el('import-file-path').value.trim();
-  if (!filePath) {
-    showError('Vui lòng nhập đường dẫn file CSV cần import.');
+  if (!importCsvContent) {
+    showError('Vui lòng chọn file CSV cần import.');
     return;
   }
   const mode = getCheckedRadioValue(IMPORT_MODE_IDS, 'append');
@@ -514,7 +538,7 @@ el('import-confirm').addEventListener('click', async () => {
   const btn = el('import-confirm');
   btn.disabled = true;
   try {
-    const result = await api('POST', `/api/objects/${encodeURIComponent(state.currentClass)}/import`, { filePath, mode });
+    const result = await api('POST', `/api/objects/${encodeURIComponent(state.currentClass)}/import`, { csvContent: importCsvContent, mode });
     el('import-overlay').hidden = true;
     await loadObjects();
     refreshOneClassCount(state.currentClass);

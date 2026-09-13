@@ -1,6 +1,5 @@
 'use strict';
 
-const fs = require('fs');
 const realmService = require('./realmService');
 
 // RFC4180-ish CSV parser: handles quoted fields (commas/newlines inside
@@ -105,23 +104,14 @@ function createAutoIncrementIdGenerator(primaryKeyType, usedPkValues) {
 
 const VALID_MODES = new Set(['overwrite', 'append']);
 
-function importCsv(className, filePath, mode) {
+function importCsv(className, csvContent, mode) {
   if (!VALID_MODES.has(mode)) {
     const err = new Error(`Chế độ import "${mode}" không hợp lệ. Chỉ hỗ trợ: overwrite, append.`);
     err.statusCode = 400;
     throw err;
   }
-  if (!filePath) {
-    const err = new Error('Thiếu đường dẫn file CSV.');
-    err.statusCode = 400;
-    throw err;
-  }
-
-  let content;
-  try {
-    content = fs.readFileSync(filePath, 'utf8');
-  } catch (e) {
-    const err = new Error(`Không đọc được file "${filePath}": ${e.message}`);
+  if (!csvContent) {
+    const err = new Error('Thiếu nội dung file CSV.');
     err.statusCode = 400;
     throw err;
   }
@@ -130,7 +120,7 @@ function importCsv(className, filePath, mode) {
   const objSchema = realmService.findSchema(className);
   const clientSchema = realmService.toClientSchema(objSchema);
   const schemaColumnNames = new Set(clientSchema.properties.map((p) => p.name));
-  const { headers, records } = parseCsv(content);
+  const { headers, records } = parseCsv(csvContent);
   // Cột CSV không có trong table -> bỏ qua. Cột table không có trong CSV ->
   // để trống (buildWriteValues/coerceValue áp giá trị mặc định theo type).
   const skippedColumns = headers.filter((h) => !schemaColumnNames.has(h));

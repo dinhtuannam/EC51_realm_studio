@@ -49,8 +49,8 @@ router.post('/objects/:className/export', handle(async (req) => {
 }));
 
 router.post('/objects/:className/import', handle(async (req) => {
-  const { filePath, mode } = req.body || {};
-  return importService.importCsv(req.params.className, filePath, mode);
+  const { csvContent, mode } = req.body || {};
+  return importService.importCsv(req.params.className, csvContent, mode);
 }));
 
 router.post('/objects/:className', handle(async (req) => {

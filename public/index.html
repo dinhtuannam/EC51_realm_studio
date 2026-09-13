@@ -100,8 +100,12 @@
     <div class="dialog-card">
       <h2>Import dữ liệu</h2>
       <div class="field">
-        <label class="field-title">Đường dẫn file CSV <span class="field-hint">(hiện chỉ hỗ trợ CSV)</span></label>
-        <input type="text" id="import-file-path" placeholder="/duong/dan/toi/file.csv" autocomplete="off" />
+        <label class="field-title">File CSV <span class="field-hint">(hiện chỉ hỗ trợ CSV)</span></label>
+        <div class="file-picker">
+          <button type="button" id="import-browse" class="btn btn-ghost">Chọn file...</button>
+          <span id="import-file-name" class="file-picker-name">Chưa chọn file</span>
+        </div>
+        <input type="file" id="import-file-input" accept=".csv,text/csv" hidden />
       </div>
       <div class="field">
         <label class="field-title">Chế độ</label>

@@ -40,7 +40,10 @@ File được lưu vào thư mục `exports/` (không commit vào git) với tê
 ## Import
 
 Nút **Import** cạnh **Export** mở hộp thoại nhập:
-- **Đường dẫn file CSV** cần import (hiện chỉ hỗ trợ CSV).
+- **File CSV**: bấm **Chọn file...** để mở hộp thoại chọn file chuẩn của hệ
+  điều hành (hiện chỉ hỗ trợ CSV). Trình duyệt không cho lấy đường dẫn tuyệt
+  đối thật của file đã chọn, nên tool đọc thẳng nội dung file ngay trong
+  trình duyệt rồi gửi lên server — không cần biết file nằm ở đâu trên máy.
 - **Chế độ**: "Thêm mới" (giữ dữ liệu hiện có, thêm dữ liệu từ file) hoặc
   "Ghi đè" (xoá toàn bộ dữ liệu hiện có của table trước khi import — sẽ hỏi
   xác nhận thêm 1 lần vì đây là thao tác không thể hoàn tác).
