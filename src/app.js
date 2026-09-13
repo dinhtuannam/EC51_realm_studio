@@ -51,7 +51,19 @@ function createApp({ logger } = {}) {
   const app = express();
   app.use(express.json());
   app.use('/api', requestLogger(activeLogger), routes);
-  app.use(express.static(path.join(__dirname, '..', 'public')));
+  // This tool's whole workflow is "edit public/*, then look at the browser" -
+  // any caching of index.html/app.js/style.css means a refresh can silently
+  // keep showing stale markup alongside fresh JS (or vice versa), which
+  // looks exactly like "the button is there but does nothing". Disabling
+  // etag/last-modified and forcing Cache-Control: no-store means every
+  // request always re-reads the current file from disk, no exceptions.
+  app.use(express.static(path.join(__dirname, '..', 'public'), {
+    etag: false,
+    lastModified: false,
+    setHeaders: (res) => {
+      res.setHeader('Cache-Control', 'no-store');
+    },
+  }));
   return app;
 }
 
