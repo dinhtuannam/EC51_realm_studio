@@ -156,6 +156,7 @@ body {
   text-shadow: 0 0 16px var(--accent-soft);
 }
 .connect-hero-text { color: var(--text-muted); font-size: 13px; margin: 10px 0 24px; line-height: 1.5; }
+.connect-footer { color: var(--text-muted); font-size: 11px; text-align: center; margin: 20px 0 0; opacity: 0.7; }
 .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
 .field label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
 .field-hint { font-weight: 400; opacity: 0.8; }
@@ -188,6 +189,7 @@ html.connected .connect-card {
   background: transparent;
 }
 html.connected .connect-hero-text { display: none; }
+html.connected .connect-footer { display: none; }
 html.connected #open-form { display: flex; gap: 8px; flex: 1; align-items: center; }
 /* Scoped to #open-form specifically - ".field" is a generic class also
    used by the export dialog's scope/format groups, and a bare ".field"/
