@@ -134,11 +134,27 @@ function coerceValue(prop, rawValue) {
     return prop.optional ? null : rawValue;
   }
   switch (prop.type) {
-    case 'int':
-      return rawValue === '' ? (prop.optional ? null : 0) : parseInt(rawValue, 10);
+    case 'int': {
+      if (rawValue === '') return prop.optional ? null : 0;
+      const parsed = parseInt(rawValue, 10);
+      if (Number.isNaN(parsed)) {
+        const err = new Error(`Gia tri "${rawValue}" khong phai so nguyen hop le cho field "${prop.name}".`);
+        err.statusCode = 400;
+        throw err;
+      }
+      return parsed;
+    }
     case 'float':
-    case 'double':
-      return rawValue === '' ? (prop.optional ? null : 0) : parseFloat(rawValue);
+    case 'double': {
+      if (rawValue === '') return prop.optional ? null : 0;
+      const parsed = parseFloat(rawValue);
+      if (Number.isNaN(parsed)) {
+        const err = new Error(`Gia tri "${rawValue}" khong phai so hop le cho field "${prop.name}".`);
+        err.statusCode = 400;
+        throw err;
+      }
+      return parsed;
+    }
     case 'bool':
       return rawValue === true || rawValue === 'true';
     case 'date':
@@ -174,6 +190,11 @@ function resolveObject(realm, objSchema, ref, filter) {
   // filtered by the same `filter` string) that produced it in listObjects.
   // Passing a different filter than the one used to display the row would
   // resolve to the wrong record, so callers must round-trip the filter.
+  if (typeof ref !== 'string' || !/^\d+$/.test(ref)) {
+    const err = new Error(`Index "${ref}" khong hop le.`);
+    err.statusCode = 404;
+    throw err;
+  }
   const index = Number(ref);
   let results = realm.objects(objSchema.name);
   if (filter) {
@@ -185,7 +206,7 @@ function resolveObject(realm, objSchema, ref, filter) {
       throw err;
     }
   }
-  if (!Number.isInteger(index) || index < 0 || index >= results.length) {
+  if (index >= results.length) {
     const err = new Error(`Index "${ref}" khong hop le trong danh sach hien tai (${results.length} record).`);
     err.statusCode = 404;
     throw err;

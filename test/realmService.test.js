@@ -80,3 +80,33 @@ test('createObject/updateObject/deleteObject: CRUD day du + loi khi ref khong to
     /Khong tim thay record/
   );
 });
+
+test('updateObject/deleteObject: filter phai duoc truyen dung khi ref la index; validate ref/gia tri', async (t) => {
+  const { filePath, encryptionKeyHex, dir } = await buildFixtureRealm();
+  t.after(() => {
+    realmService.closeRealm();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+  await realmService.openRealm(filePath, encryptionKeyHex);
+
+  // Unfiltered index 0 = 'First'; filtered by title == 'Second', index 0 = 'Second'.
+  // Passing the same filter used to display the row must resolve the right record.
+  const updated = realmService.updateObject('Note', '0', { body: 'Updated body' }, "title == 'Second'");
+  assert.equal(updated.title, 'Second');
+  assert.equal(updated.body, 'Updated body');
+
+  const first = realmService.listObjects('Note', '').rows.find((n) => n.title === 'First');
+  assert.equal(first.body, 'Hello');
+
+  realmService.deleteObject('Note', '0', "title == 'Second'");
+  const remaining = realmService.listObjects('Note', '');
+  assert.equal(remaining.total, 1);
+  assert.equal(remaining.rows[0].title, 'First');
+
+  assert.throws(() => realmService.updateObject('Note', '', { title: 'x' }), /Index/);
+  assert.throws(() => realmService.updateObject('Note', 'abc', { title: 'x' }), /Index/);
+  assert.throws(
+    () => realmService.updateObject('Person', 'p1', { age: 'not-a-number' }),
+    /so nguyen hop le/
+  );
+});
