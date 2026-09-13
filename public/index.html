@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <title>EC51 Realm Studio (dev tool)</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>EC51 Realm Studio</h1>
+    <form id="open-form">
+      <input type="text" id="file-path" placeholder="Duong dan file .realm" size="50" />
+      <input type="text" id="encryption-key" placeholder="Encryption key (hex 128 ky tu, de trong neu khong ma hoa)" size="50" />
+      <button type="submit">Open</button>
+    </form>
+    <div id="status"></div>
+  </header>
+
+  <main>
+    <aside id="class-list"></aside>
+    <section id="content">
+      <div id="toolbar" hidden>
+        <input type="text" id="filter-input" placeholder="Filter (RQL), vi du: age > 18" />
+        <button id="apply-filter">Apply</button>
+        <button id="clear-filter">Clear</button>
+        <button id="new-record">+ New record</button>
+        <span id="row-count"></span>
+      </div>
+      <div id="table-wrap"></div>
+    </section>
+  </main>
+
+  <div id="edit-overlay" hidden>
+    <form id="edit-form">
+      <h2 id="edit-title"></h2>
+      <div id="edit-fields"></div>
+      <div id="edit-error"></div>
+      <div class="edit-actions">
+        <button type="submit">Save</button>
+        <button type="button" id="edit-cancel">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
