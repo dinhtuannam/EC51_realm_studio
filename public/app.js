@@ -13,15 +13,23 @@ const state = {
   currentSchema: null,
   filter: '',
   rows: [],
+  total: 0,
+  offset: 0,
   editingRef: null,
+  // __ref of the record most recently created/updated/duplicated, so the
+  // next renderTable() can highlight it. Cleared right after use, so an
+  // unrelated later reload (Reload button, filter change...) doesn't
+  // re-highlight stale data.
+  lastMutatedRef: null,
 };
 
 const el = (id) => document.getElementById(id);
 
-// Bumped by loadObjects() and on a fresh /api/open, so a slow/stale response
-// (e.g. Apply then Clear before the first request lands) can be dropped
-// instead of overwriting state.rows/state.filter with mismatched data - that
-// mismatch is exactly what would break the __ref filter round-trip below.
+// Bumped by loadObjects()/loadMoreObjects() and on a fresh /api/open, so a
+// slow/stale response (e.g. Apply then Clear before the first request
+// lands) can be dropped instead of overwriting state.rows/state.filter with
+// mismatched data - that mismatch is exactly what would break the __ref
+// filter round-trip below.
 let loadRequestId = 0;
 
 function loadSavedConnection() {
@@ -40,7 +48,8 @@ function saveConnection(filePath, encryptionKeyHex) {
     localStorage.setItem(STORAGE_KEYS.filePath, filePath);
     localStorage.setItem(STORAGE_KEYS.encryptionKeyHex, encryptionKeyHex);
   } catch {
-    // Private browsing / storage disabled - not critical, just skip remembering.
+    // Trình duyệt ở chế độ ẩn danh hoặc chặn localStorage - không quan
+    // trọng, chỉ là sẽ không nhớ được lần mở tiếp theo.
   }
 }
 
@@ -52,7 +61,7 @@ async function api(method, url, body) {
   });
   const payload = await res.json();
   if (!payload.ok) {
-    throw new Error(payload.error || 'Loi khong xac dinh');
+    throw new Error(payload.error || 'Lỗi không xác định');
   }
   return payload.data;
 }
@@ -67,19 +76,23 @@ async function openConnection(filePath, encryptionKeyHex) {
   try {
     const { schema } = await api('POST', '/api/open', { filePath, encryptionKeyHex });
     saveConnection(filePath, encryptionKeyHex);
-    loadRequestId += 1; // invalidate any in-flight loadObjects() from a previously opened file
+    loadRequestId += 1; // huỷ mọi loadObjects() đang chạy dở từ file mở trước đó
     state.schema = schema;
     state.classCounts = {};
     state.currentClass = null;
     state.currentSchema = null;
     state.filter = '';
     state.rows = [];
+    state.total = 0;
+    state.offset = 0;
     state.editingRef = null;
+    state.lastMutatedRef = null;
     el('filter-input').value = '';
     el('toolbar').hidden = true;
     el('table-wrap').innerHTML = '';
     el('row-count').textContent = '';
-    setStatus(`Da mo file. Tim thay ${schema.length} class.`, false);
+    el('load-more').hidden = true;
+    setStatus(`Đã mở file thành công. Tìm thấy ${schema.length} class.`, false);
     renderClassList();
     loadClassCounts(schema);
   } catch (err) {
@@ -121,7 +134,7 @@ async function loadClassCounts(schema) {
       const { total } = await api('GET', `/api/objects/${encodeURIComponent(cls.name)}/count`);
       updateClassCount(cls.name, total);
     } catch {
-      // Leave this one without a count rather than failing the whole sidebar.
+      // Bỏ qua class này, không để 1 lỗi làm hỏng cả sidebar.
     }
   }));
 }
@@ -139,7 +152,7 @@ async function refreshOneClassCount(className) {
     const { total } = await api('GET', `/api/objects/${encodeURIComponent(className)}/count`);
     updateClassCount(className, total);
   } catch {
-    // Not critical - the table itself already reflects the change.
+    // Không quan trọng - bảng dữ liệu chính đã phản ánh đúng thay đổi rồi.
   }
 }
 
@@ -163,16 +176,30 @@ async function selectClass(className) {
   await loadObjects();
 }
 
+function buildObjectsQuery(offset) {
+  const params = new URLSearchParams();
+  if (state.filter) params.set('filter', state.filter);
+  if (offset) params.set('offset', String(offset));
+  const qs = params.toString();
+  return qs ? `?${qs}` : '';
+}
+
+function updateRowCountUi() {
+  el('row-count').textContent = `${state.rows.length}/${state.total} record`;
+  el('load-more').hidden = state.rows.length >= state.total;
+}
+
 async function loadObjects() {
   if (!state.currentClass) return;
   const requestId = ++loadRequestId;
   try {
-    const query = state.filter ? `?filter=${encodeURIComponent(state.filter)}` : '';
-    const data = await api('GET', `/api/objects/${encodeURIComponent(state.currentClass)}${query}`);
-    if (requestId !== loadRequestId) return; // a newer load started meanwhile; drop this stale response
+    const data = await api('GET', `/api/objects/${encodeURIComponent(state.currentClass)}${buildObjectsQuery(0)}`);
+    if (requestId !== loadRequestId) return; // đã có request mới hơn chạy sau; bỏ response cũ này
     state.currentSchema = data.schema;
     state.rows = data.rows;
-    el('row-count').textContent = `${data.returned}/${data.total} record`;
+    state.total = data.total;
+    state.offset = data.rows.length;
+    updateRowCountUi();
     renderTable();
     setStatus('', false);
   } catch (err) {
@@ -180,6 +207,27 @@ async function loadObjects() {
     setStatus(err.message, true);
   }
 }
+
+async function loadMoreObjects() {
+  if (!state.currentClass) return;
+  const requestId = ++loadRequestId;
+  try {
+    const data = await api('GET', `/api/objects/${encodeURIComponent(state.currentClass)}${buildObjectsQuery(state.offset)}`);
+    if (requestId !== loadRequestId) return;
+    state.rows = state.rows.concat(data.rows);
+    state.total = data.total;
+    state.offset += data.rows.length;
+    updateRowCountUi();
+    renderTable();
+  } catch (err) {
+    if (requestId !== loadRequestId) return;
+    setStatus(err.message, true);
+  }
+}
+
+el('load-more').addEventListener('click', () => {
+  loadMoreObjects();
+});
 
 function renderTable() {
   const wrap = el('table-wrap');
@@ -200,6 +248,7 @@ function renderTable() {
   const tbody = document.createElement('tbody');
   for (const row of state.rows) {
     const tr = document.createElement('tr');
+    tr.dataset.ref = String(row.__ref);
     for (const prop of state.currentSchema.properties) {
       const td = document.createElement('td');
       const value = row[prop.name];
@@ -210,18 +259,28 @@ function renderTable() {
     }
     const actionTd = document.createElement('td');
     const editBtn = document.createElement('button');
-    editBtn.textContent = 'Edit';
+    editBtn.textContent = 'Sửa';
     editBtn.addEventListener('click', () => openEditForm(row));
+    const dupBtn = document.createElement('button');
+    dupBtn.textContent = 'Nhân bản';
+    dupBtn.addEventListener('click', () => openEditForm(row, { duplicate: true }));
     const delBtn = document.createElement('button');
-    delBtn.textContent = 'Delete';
+    delBtn.textContent = 'Xóa';
     delBtn.addEventListener('click', () => deleteRow(row));
     actionTd.appendChild(editBtn);
+    actionTd.appendChild(dupBtn);
     actionTd.appendChild(delBtn);
     tr.appendChild(actionTd);
     tbody.appendChild(tr);
   }
   table.appendChild(tbody);
   wrap.appendChild(table);
+
+  if (state.lastMutatedRef !== null) {
+    const target = tbody.querySelector(`[data-ref="${CSS.escape(String(state.lastMutatedRef))}"]`);
+    if (target) target.classList.add('row-highlight');
+    state.lastMutatedRef = null;
+  }
 }
 
 el('apply-filter').addEventListener('click', () => {
@@ -236,20 +295,23 @@ el('clear-filter').addEventListener('click', () => {
 });
 
 el('reload-table').addEventListener('click', async () => {
-  // Data can change out from under this tool (e.g. the Swift app writing to
-  // the same file while it's being inspected here), so let the user pull
-  // fresh data on demand instead of only reacting to their own edits.
+  // Dữ liệu có thể bị thay đổi bởi tiến trình khác (VD: app Swift đang ghi
+  // vào cùng file trong lúc dùng tool này để kiểm tra), nên cho phép người
+  // dùng chủ động tải lại thay vì chỉ tự động cập nhật sau khi tự sửa.
   await loadObjects();
   refreshOneClassCount(state.currentClass);
 });
 
 el('new-record').addEventListener('click', () => openEditForm(null));
 
-function openEditForm(row) {
-  state.editingRef = row ? row.__ref : null;
-  el('edit-title').textContent = row
-    ? `Sua record (${state.currentClass})`
-    : `Tao record moi (${state.currentClass})`;
+function openEditForm(sourceRow, { duplicate = false } = {}) {
+  const isEditingExisting = !!sourceRow && !duplicate;
+  state.editingRef = isEditingExisting ? sourceRow.__ref : null;
+  el('edit-title').textContent = isEditingExisting
+    ? `Sửa record trong class "${state.currentClass}"`
+    : duplicate
+      ? `Nhân bản record trong class "${state.currentClass}"`
+      : `Thêm record mới trong class "${state.currentClass}"`;
   el('edit-error').textContent = '';
   const fieldsBox = el('edit-fields');
   fieldsBox.innerHTML = '';
@@ -257,20 +319,22 @@ function openEditForm(row) {
   for (const prop of state.currentSchema.properties) {
     const wrapDiv = document.createElement('div');
     wrapDiv.className = 'field-row';
-    // Realm forbids changing a primaryKey value outside a migration, so when
-    // editing an existing row that field is locked (server also drops it).
-    const isPrimaryKey = row && primaryKey && prop.name === primaryKey;
+    // Realm không cho sửa giá trị primaryKey ngoài migration, nên khi đang
+    // sửa 1 record có sẵn thì khoá field này lại (server cũng tự bỏ qua nó).
+    // Khi nhân bản, đây thực chất là tạo record MỚI nên field này vẫn phải
+    // sửa được (và bắt buộc phải đổi để tránh trùng primary key).
+    const isLockedPrimaryKey = isEditingExisting && primaryKey && prop.name === primaryKey;
     const label = document.createElement('label');
     const annotations = [];
-    if (prop.optional) annotations.push('optional');
-    if (isPrimaryKey) annotations.push('primary key - khong sua duoc');
+    if (prop.optional) annotations.push('không bắt buộc');
+    if (isLockedPrimaryKey) annotations.push('khóa chính - không thể sửa');
     label.textContent = annotations.length ? `${prop.name} (${annotations.join(', ')})` : prop.name;
     const input = document.createElement('input');
     input.type = prop.type === 'bool' ? 'checkbox' : 'text';
     input.name = prop.name;
     input.dataset.type = prop.type;
-    if (row) {
-      const value = row[prop.name];
+    if (sourceRow) {
+      const value = sourceRow[prop.name];
       if (prop.type === 'bool') {
         input.checked = !!value;
       } else if (value && typeof value === 'object' && value.__complex) {
@@ -279,7 +343,7 @@ function openEditForm(row) {
       } else {
         input.value = value ?? '';
       }
-      if (isPrimaryKey) {
+      if (isLockedPrimaryKey) {
         input.disabled = true;
       }
     }
@@ -304,35 +368,37 @@ el('edit-form').addEventListener('submit', async (e) => {
   }
   const wasCreate = state.editingRef === null;
   try {
+    let result;
     if (wasCreate) {
-      await api('POST', `/api/objects/${encodeURIComponent(state.currentClass)}`, fields);
+      result = await api('POST', `/api/objects/${encodeURIComponent(state.currentClass)}`, fields);
     } else {
-      // Must send the SAME filter that was active when this row's __ref (an
-      // index, for classes without a primaryKey) was fetched, or the backend
-      // could resolve a different record. See realmService.js resolveObject.
+      // Phải gửi kèm ĐÚNG filter đang áp dụng lúc lấy __ref (là index, với
+      // class không có primaryKey), nếu không backend có thể sửa nhầm record
+      // khác. Xem thêm comment resolveObject trong realmService.js.
       const query = state.filter ? `?filter=${encodeURIComponent(state.filter)}` : '';
-      await api(
+      result = await api(
         'PUT',
         `/api/objects/${encodeURIComponent(state.currentClass)}/${encodeURIComponent(state.editingRef)}${query}`,
         fields
       );
     }
+    state.lastMutatedRef = result.__ref;
     el('edit-overlay').hidden = true;
     await loadObjects();
     if (wasCreate) {
       refreshOneClassCount(state.currentClass);
     }
-    // Set after loadObjects() (which clears #status on its own success path),
-    // otherwise this message would be wiped out immediately.
-    setStatus(wasCreate ? 'Da tao record moi thanh cong.' : 'Da luu thay doi thanh cong.', false);
+    // Đặt SAU loadObjects() (vì loadObjects() tự xoá #status khi thành công),
+    // nếu đặt trước thì thông báo này sẽ bị ghi đè mất ngay lập tức.
+    setStatus(wasCreate ? 'Đã tạo record mới thành công.' : 'Đã lưu thay đổi thành công.', false);
   } catch (err) {
     el('edit-error').textContent = err.message;
-    setStatus(`Luu that bai: ${err.message}`, true);
+    setStatus(`Lưu thất bại: ${err.message}`, true);
   }
 });
 
 async function deleteRow(row) {
-  if (!confirm('Xoa record nay?')) return;
+  if (!confirm('Bạn có chắc muốn xóa record này không?')) return;
   try {
     const query = state.filter ? `?filter=${encodeURIComponent(state.filter)}` : '';
     await api(
@@ -341,14 +407,14 @@ async function deleteRow(row) {
     );
     await loadObjects();
     refreshOneClassCount(state.currentClass);
-    setStatus('Da xoa record thanh cong.', false);
+    setStatus('Đã xóa record thành công.', false);
   } catch (err) {
-    setStatus(`Xoa that bai: ${err.message}`, true);
+    setStatus(`Xóa thất bại: ${err.message}`, true);
   }
 }
 
-// Auto-load a previously opened file/key, if any, so returning to the tool
-// doesn't require copy-pasting the path and key again.
+// Tự động mở lại file/key đã lưu (nếu có), để quay lại tool không cần
+// copy-paste lại đường dẫn và key.
 (function initFromStorage() {
   const saved = loadSavedConnection();
   el('file-path').value = saved.filePath;

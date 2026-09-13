@@ -90,7 +90,37 @@ test('listObjects: tra dung record, __ref, filter RQL', async (t) => {
   assert.equal(filtered.total, 1);
   assert.equal(filtered.rows[0].name, 'Alice');
 
-  assert.throws(() => realmService.listObjects('Person', 'age >>> 5'), /Filter khong hop le/);
+  assert.throws(() => realmService.listObjects('Person', 'age >>> 5'), /Filter không hợp lệ/);
+});
+
+test('listObjects: phan trang bang offset/limit', async (t) => {
+  const { filePath, encryptionKeyHex, dir } = await buildFixtureRealm();
+  t.after(() => {
+    realmService.closeRealm();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+  await realmService.openRealm(filePath, encryptionKeyHex);
+
+  const page1 = realmService.listObjects('Person', '', 0, 1);
+  assert.equal(page1.total, 2);
+  assert.equal(page1.returned, 1);
+  assert.equal(page1.offset, 0);
+  assert.equal(page1.rows.length, 1);
+
+  const page2 = realmService.listObjects('Person', '', 1, 1);
+  assert.equal(page2.total, 2);
+  assert.equal(page2.returned, 1);
+  assert.equal(page2.offset, 1);
+  assert.notEqual(page1.rows[0].__ref, page2.rows[0].__ref);
+
+  const page3 = realmService.listObjects('Person', '', 2, 1);
+  assert.equal(page3.returned, 0);
+
+  // Default (no offset/limit given) still returns everything up front,
+  // matching every existing call site that doesn't paginate.
+  const all = realmService.listObjects('Person', '');
+  assert.equal(all.returned, 2);
+  assert.equal(all.offset, 0);
 });
 
 test('countObjects: dem nhanh khong can fetch row, loi khi class khong ton tai', async (t) => {
@@ -103,7 +133,7 @@ test('countObjects: dem nhanh khong can fetch row, loi khi class khong ton tai',
 
   assert.equal(realmService.countObjects('Person').total, 2);
   assert.equal(realmService.countObjects('Note').total, 2);
-  assert.throws(() => realmService.countObjects('NoSuchClass'), /Khong tim thay class/);
+  assert.throws(() => realmService.countObjects('NoSuchClass'), /Không tìm thấy class/);
 
   realmService.createObject('Person', { id: 'p3', name: 'Carol', age: 40, active: true });
   assert.equal(realmService.countObjects('Person').total, 3);
@@ -133,7 +163,7 @@ test('createObject/updateObject/deleteObject: CRUD day du + loi khi ref khong to
 
   assert.throws(
     () => realmService.updateObject('Person', 'no-such-id', { name: 'X' }),
-    /Khong tim thay record/
+    /Không tìm thấy record/
   );
 });
 
@@ -163,7 +193,7 @@ test('updateObject/deleteObject: filter phai duoc truyen dung khi ref la index; 
   assert.throws(() => realmService.updateObject('Note', 'abc', { title: 'x' }), /Index/);
   assert.throws(
     () => realmService.updateObject('Person', 'p1', { age: 'not-a-number' }),
-    /so nguyen hop le/
+    /số nguyên hợp lệ/
   );
 });
 

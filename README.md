@@ -13,7 +13,9 @@ Không dùng cho production — chỉ để dev tự kiểm tra dữ liệu trê
    ```
 3. Browser sẽ tự mở `http://localhost:4848`. Nếu không tự mở, mở tay URL đó.
 4. Nhập **File path** tới file `.realm` và **Encryption key** (chuỗi hex 128 ký tự,
-   để trống nếu file không mã hoá), bấm **Open**.
+   để trống nếu file không mã hoá), bấm **Mở**.
+5. Lần sau mở lại trang, tool tự nhớ và tự mở lại file/key đã dùng gần nhất
+   (lưu trong localStorage của trình duyệt) — không cần nhập lại.
 
 ## Log
 
@@ -27,9 +29,14 @@ cứu nhanh hơn thay vì phải tái hiện lại lỗi.
 
 - Chỉ hỗ trợ field kiểu đơn giản (string/int/double/bool/date/...). Field kiểu
   list/link/embedded object sẽ hiện read-only, chưa hỗ trợ sửa.
-- Danh sách record giới hạn 500 record đầu tiên (không phân trang).
+- Danh sách record tải 500 record/lần; bấm nút **Xem thêm** cạnh số record
+  trong toolbar để tải tiếp — không phải phân trang theo số trang, chỉ tải nối
+  tiếp cho tới hết.
 - Với class không có `primaryKey`, record được định danh bằng vị trí (index) trong
   kết quả hiện tại — nếu file bị tiến trình khác sửa cùng lúc, index có thể lệch.
+- Nhân bản (Duplicate) một record sẽ mở form tạo mới với dữ liệu điền sẵn từ
+  record gốc, kể cả primary key — với class có `primaryKey`, bạn phải tự đổi
+  giá trị đó trước khi Lưu, nếu không Realm sẽ báo lỗi trùng khoá.
 - Chỉ mở được 1 file tại 1 thời điểm; mở file mới sẽ đóng file cũ.
 - Dùng `realm@^20.2.0` (core ~20.x) — nếu file của bạn tạo bởi core khác xa version
   này, việc mở file có thể báo lỗi. Đây là điều tool này giúp bạn phát hiện sớm.

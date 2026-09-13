@@ -30,7 +30,11 @@ router.get('/schema', handle(async () => ({ schema: realmService.getSchema() }))
 
 router.get('/objects/:className', handle(async (req) => {
   const filter = req.query.filter || '';
-  return realmService.listObjects(req.params.className, filter);
+  const offsetRaw = parseInt(req.query.offset, 10);
+  const offset = Number.isNaN(offsetRaw) ? 0 : offsetRaw;
+  const limitRaw = parseInt(req.query.limit, 10);
+  const limit = Number.isNaN(limitRaw) ? undefined : limitRaw;
+  return realmService.listObjects(req.params.className, filter, offset, limit);
 }));
 
 router.get('/objects/:className/count', handle(async (req) => {

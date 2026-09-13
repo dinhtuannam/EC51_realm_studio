@@ -48,6 +48,16 @@ main { flex: 1 1 auto; display: flex; min-height: 0; }
 table { border-collapse: collapse; width: 100%; background: white; font-size: 13px; }
 th, td { border: 1px solid #eee; padding: 4px 8px; text-align: left; white-space: nowrap; }
 th { background: #f0f0f0; position: sticky; top: 0; }
+/* One-shot fade, not a transition + class-removal timer: the animation
+   plays once when the class is applied to a freshly-rendered <tr> and
+   naturally settles back to no background, so app.js never has to track
+   "when to remove the highlight". */
+@keyframes row-highlight-fade {
+  from { background-color: #d2f5d3; }
+  to { background-color: transparent; }
+}
+tr.row-highlight { animation: row-highlight-fade 2.5s ease-out; }
+#load-more { margin-left: 4px; }
 #edit-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; }
 #edit-form { background: white; padding: 16px; border-radius: 6px; width: 480px; max-height: 80vh; overflow-y: auto; }
 .field-row { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 6px; align-items: center; }

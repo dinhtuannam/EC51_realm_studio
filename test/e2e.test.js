@@ -39,6 +39,17 @@ test('HTTP API end-to-end: open, schema, CRUD qua HTTP that su', async (t) => {
   const listBody = await listRes.json();
   assert.equal(listBody.data.total, 2);
 
+  const page1Res = await fetch(`${base}/api/objects/Person?limit=1&offset=0`);
+  const page1Body = await page1Res.json();
+  assert.equal(page1Body.data.returned, 1);
+  assert.equal(page1Body.data.offset, 0);
+
+  const page2Res = await fetch(`${base}/api/objects/Person?limit=1&offset=1`);
+  const page2Body = await page2Res.json();
+  assert.equal(page2Body.data.returned, 1);
+  assert.equal(page2Body.data.offset, 1);
+  assert.notEqual(page1Body.data.rows[0].__ref, page2Body.data.rows[0].__ref);
+
   const countRes = await fetch(`${base}/api/objects/Person/count`);
   const countBody = await countRes.json();
   assert.equal(countRes.status, 200);

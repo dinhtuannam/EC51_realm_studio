@@ -7,7 +7,7 @@ let currentEncryptionKeyHex = '';
 
 function assertOpen() {
   if (!currentRealm || currentRealm.isClosed) {
-    const err = new Error('Chua mo file Realm nao. Hay mo file truoc.');
+    const err = new Error('Chưa mở file Realm nào. Hãy mở file trước.');
     err.statusCode = 400;
     throw err;
   }
@@ -19,7 +19,7 @@ function parseEncryptionKey(hex) {
   const trimmed = String(hex).trim();
   if (!/^[0-9a-fA-F]{128}$/.test(trimmed)) {
     const err = new Error(
-      `Encryption key phai la chuoi hex 128 ky tu (64 byte). Nhan duoc ${trimmed.length} ky tu.`
+      `Encryption key phải là chuỗi hex 128 ký tự (64 byte). Đã nhận ${trimmed.length} ký tự.`
     );
     err.statusCode = 400;
     throw err;
@@ -43,7 +43,7 @@ function toClientSchema(objSchema) {
 
 async function openRealm(filePath, encryptionKeyHex) {
   if (!filePath) {
-    const err = new Error('Thieu file path.');
+    const err = new Error('Thiếu đường dẫn file.');
     err.statusCode = 400;
     throw err;
   }
@@ -100,7 +100,7 @@ function findSchema(className) {
   const realm = assertOpen();
   const found = realm.schema.find((s) => s.name === className);
   if (!found) {
-    const err = new Error(`Khong tim thay class "${className}" trong schema.`);
+    const err = new Error(`Không tìm thấy class "${className}" trong schema.`);
     err.statusCode = 404;
     throw err;
   }
@@ -131,7 +131,7 @@ function serializeObject(obj, clientSchema) {
   return result;
 }
 
-function listObjects(className, filter) {
+function listObjects(className, filter, offset = 0, limit = MAX_RESULTS) {
   const realm = assertOpen();
   const objSchema = findSchema(className);
   const clientSchema = toClientSchema(objSchema);
@@ -140,23 +140,27 @@ function listObjects(className, filter) {
     try {
       results = results.filtered(filter);
     } catch (e) {
-      const err = new Error(`Filter khong hop le: ${e.message}`);
+      const err = new Error(`Filter không hợp lệ: ${e.message}`);
       err.statusCode = 400;
       throw err;
     }
   }
   const total = results.length;
+  const start = Math.max(0, offset);
+  const end = Math.min(total, start + Math.max(0, limit));
   const rows = [];
-  for (let i = 0; i < Math.min(total, MAX_RESULTS); i += 1) {
+  for (let i = start; i < end; i += 1) {
     const obj = results[i];
     const row = serializeObject(obj, clientSchema);
-    // No primaryKey: __ref is the index into THIS (possibly filtered) result set.
-    // Callers must pass the same filter back on update/delete or the ref can
-    // resolve to a different record once the underlying data changes.
+    // No primaryKey: __ref is the ABSOLUTE index into THIS (possibly
+    // filtered) result set - stable across pages, since offset only
+    // changes which slice of the same Results is iterated, not the
+    // indices themselves. Callers must pass the same filter back on
+    // update/delete or the ref can resolve to a different record.
     row.__ref = objSchema.primaryKey ? obj[objSchema.primaryKey] : i;
     rows.push(row);
   }
-  return { total, returned: rows.length, rows, schema: clientSchema };
+  return { total, returned: rows.length, offset: start, rows, schema: clientSchema };
 }
 
 function countObjects(className) {
@@ -176,7 +180,7 @@ function coerceValue(prop, rawValue) {
       if (rawValue === '') return prop.optional ? null : 0;
       const parsed = parseInt(rawValue, 10);
       if (Number.isNaN(parsed)) {
-        const err = new Error(`Gia tri "${rawValue}" khong phai so nguyen hop le cho field "${prop.name}".`);
+        const err = new Error(`Giá trị "${rawValue}" không phải số nguyên hợp lệ cho field "${prop.name}".`);
         err.statusCode = 400;
         throw err;
       }
@@ -187,7 +191,7 @@ function coerceValue(prop, rawValue) {
       if (rawValue === '') return prop.optional ? null : 0;
       const parsed = parseFloat(rawValue);
       if (Number.isNaN(parsed)) {
-        const err = new Error(`Gia tri "${rawValue}" khong phai so hop le cho field "${prop.name}".`);
+        const err = new Error(`Giá trị "${rawValue}" không phải số hợp lệ cho field "${prop.name}".`);
         err.statusCode = 400;
         throw err;
       }
@@ -218,7 +222,7 @@ function resolveObject(realm, objSchema, ref, filter) {
   if (objSchema.primaryKey) {
     const obj = realm.objectForPrimaryKey(objSchema.name, ref);
     if (!obj) {
-      const err = new Error(`Khong tim thay record voi primary key "${ref}".`);
+      const err = new Error(`Không tìm thấy record với primary key "${ref}".`);
       err.statusCode = 404;
       throw err;
     }
@@ -229,7 +233,7 @@ function resolveObject(realm, objSchema, ref, filter) {
   // Passing a different filter than the one used to display the row would
   // resolve to the wrong record, so callers must round-trip the filter.
   if (typeof ref !== 'string' || !/^\d+$/.test(ref)) {
-    const err = new Error(`Index "${ref}" khong hop le.`);
+    const err = new Error(`Index "${ref}" không hợp lệ.`);
     err.statusCode = 404;
     throw err;
   }
@@ -239,13 +243,13 @@ function resolveObject(realm, objSchema, ref, filter) {
     try {
       results = results.filtered(filter);
     } catch (e) {
-      const err = new Error(`Filter khong hop le: ${e.message}`);
+      const err = new Error(`Filter không hợp lệ: ${e.message}`);
       err.statusCode = 400;
       throw err;
     }
   }
   if (index >= results.length) {
-    const err = new Error(`Index "${ref}" khong hop le trong danh sach hien tai (${results.length} record).`);
+    const err = new Error(`Index "${ref}" không hợp lệ trong danh sách hiện tại (${results.length} record).`);
     err.statusCode = 404;
     throw err;
   }

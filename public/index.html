@@ -2,16 +2,16 @@
 <html lang="vi">
 <head>
   <meta charset="utf-8" />
-  <title>EC51 Realm Studio (dev tool)</title>
+  <title>EC51 Realm Studio (công cụ dev)</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header>
     <h1>EC51 Realm Studio</h1>
     <form id="open-form">
-      <input type="text" id="file-path" placeholder="Duong dan file .realm" size="50" />
-      <input type="text" id="encryption-key" placeholder="Encryption key (hex 128 ky tu, de trong neu khong ma hoa)" size="50" />
-      <button type="submit">Open</button>
+      <input type="text" id="file-path" placeholder="Đường dẫn file .realm" size="50" />
+      <input type="text" id="encryption-key" placeholder="Encryption key (chuỗi hex 128 ký tự, để trống nếu file không mã hoá)" size="50" />
+      <button type="submit">Mở</button>
     </form>
     <div id="status"></div>
   </header>
@@ -19,19 +19,20 @@
   <main>
     <aside id="sidebar">
       <div id="sidebar-header">
-        <button type="button" id="toggle-sidebar" title="Thu gon/mo rong danh sach class">&#9776;</button>
-        <input type="text" id="class-search" placeholder="Tim class..." />
+        <button type="button" id="toggle-sidebar" title="Thu gọn/mở rộng danh sách class">&#9776;</button>
+        <input type="text" id="class-search" placeholder="Tìm class theo tên..." />
       </div>
       <div id="class-list"></div>
     </aside>
     <section id="content">
       <div id="toolbar" hidden>
-        <input type="text" id="filter-input" placeholder="Filter (RQL), vi du: age > 18" />
-        <button id="apply-filter">Apply</button>
-        <button id="clear-filter">Clear</button>
-        <button id="reload-table" title="Tai lai du lieu bang nay">&#8635; Reload</button>
-        <button id="new-record">+ New record</button>
+        <input type="text" id="filter-input" placeholder="Bộ lọc (RQL), ví dụ: age > 18" />
+        <button id="apply-filter">Áp dụng</button>
+        <button id="clear-filter">Bỏ lọc</button>
+        <button id="reload-table" title="Tải lại dữ liệu của bảng này">&#8635; Tải lại</button>
+        <button id="new-record">+ Thêm record mới</button>
         <span id="row-count"></span>
+        <button id="load-more" type="button" hidden>Xem thêm</button>
       </div>
       <div id="table-wrap"></div>
     </section>
@@ -43,8 +44,8 @@
       <div id="edit-fields"></div>
       <div id="edit-error"></div>
       <div class="edit-actions">
-        <button type="submit">Save</button>
-        <button type="button" id="edit-cancel">Cancel</button>
+        <button type="submit">Lưu</button>
+        <button type="button" id="edit-cancel">Hủy</button>
       </div>
     </form>
   </div>
