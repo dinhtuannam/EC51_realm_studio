@@ -20,6 +20,27 @@
   --danger: #ef4444;
   --danger-hover: #dc2626;
   --danger-soft: rgba(239, 68, 68, 0.12);
+  /* Per-action colors so Sửa/Nhân bản/Xóa/Áp dụng/Bỏ lọc/Reload/Export are
+     each visually distinct at rest, not just on hover. -soft/-border are
+     precomputed rgba() of the same hue (kept plain rgba to match
+     --accent-soft/--danger-soft already above, instead of color-mix()). */
+  --edit: #f59e0b;
+  --edit-soft: rgba(245, 158, 11, 0.12);
+  --edit-border: rgba(245, 158, 11, 0.45);
+  --duplicate: #a855f7;
+  --duplicate-soft: rgba(168, 85, 247, 0.12);
+  --duplicate-border: rgba(168, 85, 247, 0.45);
+  --reload: #06b6d4;
+  --reload-soft: rgba(6, 182, 212, 0.12);
+  --reload-border: rgba(6, 182, 212, 0.45);
+  --export: #3b82f6;
+  --export-soft: rgba(59, 130, 246, 0.12);
+  --export-border: rgba(59, 130, 246, 0.45);
+  --success-soft: rgba(34, 197, 94, 0.12);
+  --success-border: rgba(34, 197, 94, 0.45);
+  --clear: #94a3b8;
+  --clear-soft: rgba(148, 163, 184, 0.12);
+  --clear-border: rgba(148, 163, 184, 0.45);
   --radius-sm: 6px;
   --radius: 8px;
   --radius-lg: 12px;
@@ -152,6 +173,15 @@ input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px va
 .btn-danger { background: var(--danger); color: white; }
 .btn-danger:hover { background: var(--danger-hover); }
 
+/* Ghost buttons keep their neutral border/shape, just tint text + border
+   with the action's own color so each reads distinctly at rest. */
+.btn-apply { color: var(--success); border-color: var(--success-border); }
+.btn-apply:hover { background: var(--success-soft); border-color: var(--success); }
+.btn-clear { color: var(--clear); border-color: var(--clear-border); }
+.btn-clear:hover { background: var(--clear-soft); border-color: var(--clear); }
+.btn-export { color: var(--export); border-color: var(--export-border); }
+.btn-export:hover { background: var(--export-soft); border-color: var(--export); }
+
 .icon-btn {
   display: inline-flex;
   align-items: center;
@@ -167,7 +197,14 @@ input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px va
   transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
 }
 .icon-btn:hover { background: var(--bg-hover); color: var(--text); }
+.icon-btn-edit { color: var(--edit); }
+.icon-btn-edit:hover { background: var(--edit-soft); border-color: var(--edit); }
+.icon-btn-duplicate { color: var(--duplicate); }
+.icon-btn-duplicate:hover { background: var(--duplicate-soft); border-color: var(--duplicate); }
+.icon-btn-danger { color: var(--danger); }
 .icon-btn-danger:hover { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); }
+.icon-btn-reload { color: var(--reload); }
+.icon-btn-reload:hover { background: var(--reload-soft); border-color: var(--reload); }
 
 .search-wrap { position: relative; display: flex; align-items: center; }
 .search-wrap .search-icon { position: absolute; left: 9px; color: var(--text-muted); pointer-events: none; }

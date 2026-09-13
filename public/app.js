@@ -375,12 +375,12 @@ function renderTable() {
     const actionTd = document.createElement('td');
     actionTd.className = 'row-actions';
     const editBtn = document.createElement('button');
-    editBtn.className = 'icon-btn';
+    editBtn.className = 'icon-btn icon-btn-edit';
     editBtn.title = 'Sửa';
     editBtn.innerHTML = ICONS.edit;
     editBtn.addEventListener('click', () => openEditForm(row));
     const dupBtn = document.createElement('button');
-    dupBtn.className = 'icon-btn';
+    dupBtn.className = 'icon-btn icon-btn-duplicate';
     dupBtn.title = 'Nhân bản';
     dupBtn.innerHTML = ICONS.copy;
     dupBtn.addEventListener('click', () => openEditForm(row, { duplicate: true }));
