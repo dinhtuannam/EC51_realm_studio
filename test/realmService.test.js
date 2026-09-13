@@ -44,6 +44,29 @@ test('openRealm: mo lai that bai khong duoc lam mat file dang mo hop le', async 
   assert.equal(realmService.listObjects('Person', '').total, 2);
 });
 
+test('openRealm: mo lai cung file (giong auto-reconnect sau khi reload trang) nhieu lan lien tiep', async (t) => {
+  const { filePath, encryptionKeyHex, dir } = await buildFixtureRealm();
+  t.after(() => {
+    realmService.closeRealm();
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
+
+  // Same server process, same file+key opened again while already open -
+  // exactly what the frontend's localStorage auto-reconnect does on every
+  // page reload. realm-js shares one native handle across every JS instance
+  // opened for the same path in a process, so naively closing "the old
+  // instance" after opening "the new one" closes both, breaking every
+  // subsequent request until the process reopens a genuinely different path.
+  await realmService.openRealm(filePath, encryptionKeyHex);
+  assert.equal(realmService.listObjects('Person', '').total, 2);
+
+  await realmService.openRealm(filePath, encryptionKeyHex);
+  assert.equal(realmService.listObjects('Person', '').total, 2);
+
+  await realmService.openRealm(filePath, encryptionKeyHex);
+  assert.equal(realmService.listObjects('Person', '').total, 2);
+});
+
 test('listObjects: tra dung record, __ref, filter RQL', async (t) => {
   const { filePath, encryptionKeyHex, dir } = await buildFixtureRealm();
   t.after(() => {

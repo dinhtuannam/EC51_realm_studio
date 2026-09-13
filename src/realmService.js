@@ -3,6 +3,7 @@
 const Realm = require('realm');
 
 let currentRealm = null;
+let currentEncryptionKeyHex = '';
 
 function assertOpen() {
   if (!currentRealm || currentRealm.isClosed) {
@@ -46,6 +47,28 @@ async function openRealm(filePath, encryptionKeyHex) {
     err.statusCode = 400;
     throw err;
   }
+  const normalizedKeyHex = encryptionKeyHex || '';
+  // Reopening the SAME file with the SAME key while it's already open in
+  // this process (e.g. the browser's auto-reconnect firing right after a
+  // page reload, with the server itself never restarting) must not go
+  // through Realm.open() again. realm-js shares one underlying native
+  // handle across every JS instance opened for the same path in a process:
+  // calling .close() on any one of them closes that shared handle, so *all*
+  // of them (old and newly-opened alike) report isClosed === true
+  // afterwards - even though they are distinct JS objects. Opening-then-
+  // closing-the-old-one therefore closes the realm we were about to keep.
+  // Reusing the already-open instance sidesteps the problem entirely.
+  // Only short-circuit when the key also matches: a genuinely different key
+  // for the same path must still go through Realm.open() so a wrong key is
+  // still rejected instead of silently reusing stale data.
+  if (
+    currentRealm
+    && !currentRealm.isClosed
+    && currentRealm.path === filePath
+    && currentEncryptionKeyHex === normalizedKeyHex
+  ) {
+    return { schema: getSchema() };
+  }
   const encryptionKey = parseEncryptionKey(encryptionKeyHex);
   // Don't touch currentRealm until the new open succeeds - if Realm.open
   // rejects (wrong key/path/incompatible file), the previously-open realm
@@ -56,6 +79,7 @@ async function openRealm(filePath, encryptionKeyHex) {
     previousRealm.close();
   }
   currentRealm = nextRealm;
+  currentEncryptionKeyHex = normalizedKeyHex;
   return { schema: getSchema() };
 }
 
@@ -64,6 +88,7 @@ function closeRealm() {
     currentRealm.close();
   }
   currentRealm = null;
+  currentEncryptionKeyHex = '';
 }
 
 function getSchema() {
