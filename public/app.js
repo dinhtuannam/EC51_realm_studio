@@ -1,5 +1,17 @@
 'use strict';
 
+// Icon markup is fixed, hand-written SVG (never derived from row/user data),
+// so setting it via innerHTML is safe - the same "never trust row data in
+// innerHTML" rule that keeps renderTable()/openEditForm() on textContent
+// for actual record values still applies there unchanged.
+const ICONS = {
+  edit: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+  copy: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+  trash: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>',
+  database: '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>',
+  search: '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+};
+
 const STORAGE_KEYS = {
   filePath: 'ec51RealmStudio.filePath',
   encryptionKeyHex: 'ec51RealmStudio.encryptionKeyHex',
@@ -121,6 +133,10 @@ async function openConnection(filePath, encryptionKeyHex, { restoreFromUrl = fal
     el('table-wrap').innerHTML = '';
     el('row-count').textContent = '';
     el('load-more').hidden = true;
+    // Chuyển #connect-panel từ welcome card to giữa màn hình sang thanh gọn
+    // phía trên (xem quy tắc html.connected trong style.css) - chỉ 1 class,
+    // không có logic show/hide nào khác cần thêm.
+    document.documentElement.classList.add('connected');
     showToast(`Đã mở file thành công. Tìm thấy ${schema.length} class.`);
     renderClassList();
     loadClassCounts(schema);
@@ -233,6 +249,7 @@ function updateRowCountUi() {
 async function loadObjects() {
   if (!state.currentClass) return;
   const requestId = ++loadRequestId;
+  el('loading-bar').classList.add('active');
   try {
     const data = await api('GET', `/api/objects/${encodeURIComponent(state.currentClass)}${buildObjectsQuery(0)}`);
     if (requestId !== loadRequestId) return; // đã có request mới hơn chạy sau; bỏ response cũ này
@@ -245,12 +262,15 @@ async function loadObjects() {
   } catch (err) {
     if (requestId !== loadRequestId) return;
     showError(err.message);
+  } finally {
+    if (requestId === loadRequestId) el('loading-bar').classList.remove('active');
   }
 }
 
 async function loadMoreObjects() {
   if (!state.currentClass) return;
   const requestId = ++loadRequestId;
+  el('loading-bar').classList.add('active');
   try {
     const data = await api('GET', `/api/objects/${encodeURIComponent(state.currentClass)}${buildObjectsQuery(state.offset)}`);
     if (requestId !== loadRequestId) return;
@@ -262,6 +282,8 @@ async function loadMoreObjects() {
   } catch (err) {
     if (requestId !== loadRequestId) return;
     showError(err.message);
+  } finally {
+    if (requestId === loadRequestId) el('loading-bar').classList.remove('active');
   }
 }
 
@@ -269,10 +291,23 @@ el('load-more').addEventListener('click', () => {
   loadMoreObjects();
 });
 
+function emptyState(iconSvg, message) {
+  const box = document.createElement('div');
+  box.className = 'empty-state';
+  box.innerHTML = iconSvg; // icon SVG là markup cố định, không phải dữ liệu record
+  const p = document.createElement('p');
+  p.textContent = message; // message luôn là chuỗi tĩnh do ta viết, không phải dữ liệu record
+  box.appendChild(p);
+  return box;
+}
+
 function renderTable() {
   const wrap = el('table-wrap');
   wrap.innerHTML = '';
-  if (!state.currentSchema) return;
+  if (!state.currentSchema) {
+    wrap.appendChild(emptyState(ICONS.database, 'Chọn 1 class ở sidebar để xem dữ liệu'));
+    return;
+  }
   const table = document.createElement('table');
   const thead = document.createElement('thead');
   const headRow = document.createElement('tr');
@@ -286,6 +321,17 @@ function renderTable() {
   table.appendChild(thead);
 
   const tbody = document.createElement('tbody');
+  if (state.rows.length === 0) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.className = 'empty-cell';
+    td.colSpan = state.currentSchema.properties.length + 1;
+    td.textContent = state.filter
+      ? 'Không có record nào phù hợp với filter hiện tại.'
+      : 'Class này chưa có record nào.';
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+  }
   for (const row of state.rows) {
     const tr = document.createElement('tr');
     tr.dataset.ref = String(row.__ref);
@@ -298,14 +344,21 @@ function renderTable() {
       tr.appendChild(td);
     }
     const actionTd = document.createElement('td');
+    actionTd.className = 'row-actions';
     const editBtn = document.createElement('button');
-    editBtn.textContent = 'Sửa';
+    editBtn.className = 'icon-btn';
+    editBtn.title = 'Sửa';
+    editBtn.innerHTML = ICONS.edit;
     editBtn.addEventListener('click', () => openEditForm(row));
     const dupBtn = document.createElement('button');
-    dupBtn.textContent = 'Nhân bản';
+    dupBtn.className = 'icon-btn';
+    dupBtn.title = 'Nhân bản';
+    dupBtn.innerHTML = ICONS.copy;
     dupBtn.addEventListener('click', () => openEditForm(row, { duplicate: true }));
     const delBtn = document.createElement('button');
-    delBtn.textContent = 'Xóa';
+    delBtn.className = 'icon-btn icon-btn-danger';
+    delBtn.title = 'Xóa';
+    delBtn.innerHTML = ICONS.trash;
     delBtn.addEventListener('click', () => deleteRow(row));
     actionTd.appendChild(editBtn);
     actionTd.appendChild(dupBtn);
@@ -367,10 +420,20 @@ function openEditForm(sourceRow, { duplicate = false } = {}) {
     // sửa được (và bắt buộc phải đổi để tránh trùng primary key).
     const isLockedPrimaryKey = isEditingExisting && primaryKey && prop.name === primaryKey;
     const label = document.createElement('label');
-    const annotations = [];
-    if (prop.optional) annotations.push('không bắt buộc');
-    if (isLockedPrimaryKey) annotations.push('khóa chính - không thể sửa');
-    label.textContent = annotations.length ? `${prop.name} (${annotations.join(', ')})` : prop.name;
+    label.append(prop.name);
+    if (isLockedPrimaryKey) {
+      const badge = document.createElement('span');
+      badge.className = 'badge badge-key';
+      badge.textContent = 'khóa chính';
+      badge.title = 'Realm không cho sửa giá trị primary key ngoài migration';
+      label.appendChild(badge);
+    }
+    if (prop.optional) {
+      const badge = document.createElement('span');
+      badge.className = 'badge badge-optional';
+      badge.textContent = 'không bắt buộc';
+      label.appendChild(badge);
+    }
     const input = document.createElement('input');
     input.type = prop.type === 'bool' ? 'checkbox' : 'text';
     input.name = prop.name;

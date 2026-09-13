@@ -1,50 +1,271 @@
 * { box-sizing: border-box; }
-/* #toolbar and #edit-overlay below set `display: flex` on an ID selector,
+/* #toolbar/#edit-overlay/etc below set `display: flex` on an ID selector,
    which outranks the browser's default `[hidden] { display: none }` rule
    (attribute selectors have lower specificity than ID selectors) - so
    toggling .hidden in app.js would do nothing without this override. */
 [hidden] { display: none !important; }
+
+:root {
+  --bg: #0a0a0f;
+  --bg-panel: #131318;
+  --bg-hover: #1c1c24;
+  --bg-input: #16161c;
+  --border: #2a2a35;
+  --text: #e8e8ec;
+  --text-muted: #8b8b96;
+  --accent: #6366f1;
+  --accent-hover: #7476f5;
+  --accent-soft: rgba(99, 102, 241, 0.15);
+  --success: #22c55e;
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  --danger-soft: rgba(239, 68, 68, 0.12);
+  --radius-sm: 6px;
+  --radius: 8px;
+  --radius-lg: 12px;
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
 html, body { height: 100%; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   margin: 0;
-  background: #f7f7f8;
-  color: #1a1a1a;
+  background: var(--bg);
+  color: var(--text);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  font-size: 13px;
 }
-/* header/main split the viewport with flex instead of a hardcoded
-   `calc(100vh - Npx)` - a fixed header-height guess breaks (main overflows
-   the viewport, so #table-wrap's own scrollbars end up below the fold and
-   require scrolling the whole page to reach) the moment the header wraps to
-   more than one line. min-height:0 on the nested flex chain is required for
-   overflow:auto to actually clip inside a flex item instead of growing it. */
-header { flex: 0 0 auto; padding: 12px 16px; background: #20232a; color: white; }
-header h1 { font-size: 16px; margin: 0 0 8px; }
-#open-form input { padding: 6px; margin-right: 6px; }
-#open-form button { padding: 6px 12px; }
-main { flex: 1 1 auto; display: flex; min-height: 0; }
-#sidebar { flex: 0 0 220px; display: flex; flex-direction: column; min-height: 0; border-right: 1px solid #ddd; background: white; transition: flex-basis 0.15s ease; }
-#sidebar.collapsed { flex-basis: 36px; }
-#sidebar.collapsed #class-search,
+
+/* ---------- Connect panel: full-screen welcome card before a file is
+   open, collapses into a slim inline bar once connected. body/main split
+   the remaining height with flex-basis instead of a hardcoded height, so
+   neither state needs JS to resize anything beyond toggling one class. */
+#connect-panel {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  min-height: 0;
+  transition: flex-basis 0.15s ease;
+}
+.connect-card {
+  width: 100%;
+  max-width: 460px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  box-shadow: var(--shadow-lg);
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-mark { color: var(--accent); display: flex; }
+.brand-name { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+.connect-hero-text { color: var(--text-muted); font-size: 13px; margin: 10px 0 24px; line-height: 1.5; }
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.field label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+.field-hint { font-weight: 400; opacity: 0.8; }
+
+html.connected #connect-panel {
+  flex: 0 0 auto;
+  justify-content: flex-start;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+html.connected .connect-card {
+  max-width: none;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+html.connected .connect-hero-text { display: none; }
+html.connected #open-form { display: flex; gap: 8px; flex: 1; align-items: center; }
+html.connected .field { flex-direction: row; align-items: center; gap: 6px; margin: 0; flex: 1; min-width: 0; }
+html.connected .field label { display: none; }
+html.connected #open-form input { flex: 1; min-width: 0; }
+html.connected .btn-block { width: auto; flex: 0 0 auto; }
+
+/* ---------- Inputs & buttons ---------- */
+input[type="text"] {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.12s ease;
+}
+input[type="text"]::placeholder { color: var(--text-muted); }
+input[type="text"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease, opacity 0.12s ease;
+  white-space: nowrap;
+}
+.btn-primary { background: var(--accent); color: white; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-ghost { background: transparent; color: var(--text); border-color: var(--border); }
+.btn-ghost:hover { background: var(--bg-hover); }
+.btn-block { width: 100%; }
+.btn-danger { background: var(--danger); color: white; }
+.btn-danger:hover { background: var(--danger-hover); }
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.icon-btn:hover { background: var(--bg-hover); color: var(--text); }
+.icon-btn-danger:hover { background: var(--danger-soft); color: var(--danger); border-color: var(--danger); }
+
+.search-wrap { position: relative; display: flex; align-items: center; }
+.search-wrap .search-icon { position: absolute; left: 9px; color: var(--text-muted); pointer-events: none; }
+.search-wrap input[type="text"] { padding-left: 30px; width: 100%; }
+
+/* ---------- Layout ---------- */
+main { flex: 0 0 0; display: flex; min-height: 0; overflow: hidden; transition: flex-basis 0.15s ease; }
+html.connected main { flex: 1 1 auto; }
+
+#sidebar {
+  flex: 0 0 240px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--border);
+  background: var(--bg-panel);
+  transition: flex-basis 0.15s ease;
+}
+#sidebar.collapsed { flex-basis: 44px; }
+#sidebar.collapsed .search-wrap,
 #sidebar.collapsed #class-list { display: none; }
-#sidebar-header { flex: 0 0 auto; display: flex; gap: 4px; padding: 6px; border-bottom: 1px solid #eee; }
-#toggle-sidebar { flex: 0 0 auto; padding: 4px 8px; cursor: pointer; }
-#class-search { flex: 1; min-width: 0; padding: 4px; font-size: 12px; }
-#class-list { flex: 1; overflow-y: auto; min-height: 0; }
-.class-item { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee; font-size: 13px; white-space: nowrap; }
-.class-item:hover { background: #f0f0f0; }
-.class-item.active { background: #dbe9ff; font-weight: 600; }
-.class-item .count { color: #888; font-weight: normal; }
-#content { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
-#toolbar { flex: 0 0 auto; padding: 8px; background: white; border-bottom: 1px solid #ddd; display: flex; gap: 6px; align-items: center; }
-#filter-input { flex: 1; padding: 6px; }
-#row-count { font-size: 12px; color: #666; white-space: nowrap; }
-#table-wrap { flex: 1; overflow: auto; min-height: 0; padding: 8px; }
-table { border-collapse: collapse; width: 100%; background: white; font-size: 13px; }
-th, td { border: 1px solid #eee; padding: 4px 8px; text-align: left; white-space: nowrap; }
-th { background: #f0f0f0; position: sticky; top: 0; }
+#sidebar-header { flex: 0 0 auto; display: flex; gap: 6px; padding: 10px; border-bottom: 1px solid var(--border); }
+#class-list { flex: 1; overflow-y: auto; min-height: 0; padding: 6px; }
+
+.class-item {
+  padding: 7px 10px;
+  margin-bottom: 2px;
+  cursor: pointer;
+  font-size: 12.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: var(--radius-sm);
+  border-left: 2px solid transparent;
+  color: var(--text-muted);
+  transition: background-color 0.1s ease, color 0.1s ease;
+}
+.class-item:hover { background: var(--bg-hover); color: var(--text); }
+.class-item.active {
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+  color: var(--text);
+  font-weight: 600;
+}
+
+#content { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; background: var(--bg); }
+#toolbar {
+  flex: 0 0 auto;
+  padding: 10px 14px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.toolbar-filter { flex: 1; max-width: 420px; }
+.toolbar-spacer { flex: 1; }
+.row-count { font-size: 12px; color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+#loading-bar { height: 2px; flex: 0 0 auto; background: transparent; }
+#loading-bar.active {
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  background-size: 200% 100%;
+  animation: loading-sweep 1s linear infinite;
+}
+@keyframes loading-sweep {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+
+#table-wrap { flex: 1; overflow: auto; min-height: 0; padding: 14px; }
+
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+th, td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+th {
+  background: var(--bg-hover);
+  color: var(--text-muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+th:first-child { border-top-left-radius: var(--radius); }
+th:last-child { border-top-right-radius: var(--radius); }
+tbody tr:hover { background: var(--bg-hover); }
+tbody tr:last-child td { border-bottom: none; }
+.row-actions { display: flex; gap: 4px; }
+
+.empty-cell { text-align: center; padding: 32px 12px; color: var(--text-muted); white-space: normal; }
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 64px 16px;
+  color: var(--text-muted);
+  text-align: center;
+}
+.empty-state svg { opacity: 0.5; }
+
 /* One-shot fade, not a transition + class-removal timer: the animation
    plays once when the class is applied to a freshly-rendered <tr> and
    naturally settles back to no background, so app.js never has to track
@@ -53,12 +274,53 @@ th { background: #f0f0f0; position: sticky; top: 0; }
    span front-loads the color change, so it visually "disappears" well
    before the animation actually finishes. */
 @keyframes row-highlight-fade {
-  0% { background-color: #93e097; }
-  70% { background-color: #93e097; }
+  0% { background-color: rgba(34, 197, 94, 0.35); }
+  70% { background-color: rgba(34, 197, 94, 0.35); }
   100% { background-color: transparent; }
 }
 tr.row-highlight { animation: row-highlight-fade 3s ease-in; }
-#load-more { margin-left: 4px; }
+
+/* ---------- Edit/create/duplicate modal ---------- */
+#edit-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+}
+#edit-form {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  padding: 24px;
+  border-radius: var(--radius-lg);
+  width: 520px;
+  max-width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+}
+#edit-title { font-size: 15px; font-weight: 600; margin: 0 0 16px; }
+.field-row { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 10px; align-items: center; }
+.field-row label { font-size: 12px; color: var(--text-muted); flex: 1; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.field-row input[type="text"] { flex: 2; }
+.badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.badge-key { background: var(--accent-soft); color: var(--accent-hover); }
+.badge-optional { background: var(--bg-hover); color: var(--text-muted); }
+#edit-error { color: var(--danger); font-size: 12px; margin: 8px 0; min-height: 14px; }
+.edit-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+
+/* ---------- Toasts ---------- */
 #toast-container {
   position: fixed;
   bottom: 20px;
@@ -70,12 +332,13 @@ tr.row-highlight { animation: row-highlight-fade 3s ease-in; }
   pointer-events: none;
 }
 .toast {
-  background: #1f3d24;
+  background: #142b1c;
   color: #d9f5db;
+  border: 1px solid rgba(34, 197, 94, 0.35);
   padding: 10px 16px;
-  border-radius: 6px;
+  border-radius: var(--radius);
   font-size: 13px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow);
   max-width: 360px;
   animation: toast-lifecycle 3s ease forwards;
 }
@@ -85,10 +348,3 @@ tr.row-highlight { animation: row-highlight-fade 3s ease-in; }
   85% { opacity: 1; transform: translateY(0); }
   100% { opacity: 0; transform: translateY(0); }
 }
-#edit-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; }
-#edit-form { background: white; padding: 16px; border-radius: 6px; width: 480px; max-height: 80vh; overflow-y: auto; }
-.field-row { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 6px; align-items: center; }
-.field-row label { font-size: 12px; color: #555; flex: 1; }
-.field-row input[type="text"] { flex: 2; padding: 4px; }
-#edit-error { color: #c00; font-size: 12px; margin: 8px 0; min-height: 14px; }
-.edit-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
