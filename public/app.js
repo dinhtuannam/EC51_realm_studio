@@ -82,7 +82,26 @@ function showError(message) {
   alert(message);
 }
 
-async function openConnection(filePath, encryptionKeyHex) {
+// Phản ánh class/filter đang xem lên query string bằng replaceState (không
+// tạo history entry cho mỗi lần bấm, không reload trang) - để F5 lại trang
+// vẫn giữ nguyên URL đó và tự mở lại đúng bảng đang xem.
+function updateUrlParams() {
+  const params = new URLSearchParams(location.search);
+  if (state.currentClass) {
+    params.set('class', state.currentClass);
+  } else {
+    params.delete('class');
+  }
+  if (state.filter) {
+    params.set('filter', state.filter);
+  } else {
+    params.delete('filter');
+  }
+  const qs = params.toString();
+  history.replaceState(null, '', `${location.pathname}${qs ? `?${qs}` : ''}`);
+}
+
+async function openConnection(filePath, encryptionKeyHex, { restoreFromUrl = false } = {}) {
   try {
     const { schema } = await api('POST', '/api/open', { filePath, encryptionKeyHex });
     saveConnection(filePath, encryptionKeyHex);
@@ -105,6 +124,17 @@ async function openConnection(filePath, encryptionKeyHex) {
     showToast(`Đã mở file thành công. Tìm thấy ${schema.length} class.`);
     renderClassList();
     loadClassCounts(schema);
+
+    // Chỉ khôi phục class/filter từ URL khi tự động mở lại lúc load trang
+    // (F5) - mở file mới thủ công qua form luôn bắt đầu từ đầu, tránh việc
+    // 1 URL cũ (từ file khác) vô tình chọn nhầm class trùng tên ở file mới.
+    const params = new URLSearchParams(location.search);
+    const classFromUrl = restoreFromUrl ? params.get('class') : null;
+    if (classFromUrl && schema.some((cls) => cls.name === classFromUrl)) {
+      await selectClass(classFromUrl, params.get('filter') || '');
+    } else {
+      updateUrlParams();
+    }
   } catch (err) {
     showError(err.message);
   }
@@ -175,15 +205,16 @@ el('toggle-sidebar').addEventListener('click', () => {
   el('sidebar').classList.toggle('collapsed');
 });
 
-async function selectClass(className) {
+async function selectClass(className, initialFilter = '') {
   state.currentClass = className;
-  state.filter = '';
-  el('filter-input').value = '';
+  state.filter = initialFilter;
+  el('filter-input').value = initialFilter;
   el('toolbar').hidden = false;
   document.querySelectorAll('.class-item').forEach((n) => {
     n.classList.toggle('active', n.dataset.className === className);
   });
   await loadObjects();
+  updateUrlParams();
 }
 
 function buildObjectsQuery(offset) {
@@ -295,12 +326,14 @@ function renderTable() {
 el('apply-filter').addEventListener('click', () => {
   state.filter = el('filter-input').value.trim();
   loadObjects();
+  updateUrlParams();
 });
 
 el('clear-filter').addEventListener('click', () => {
   state.filter = '';
   el('filter-input').value = '';
   loadObjects();
+  updateUrlParams();
 });
 
 el('reload-table').addEventListener('click', async () => {
@@ -429,6 +462,6 @@ async function deleteRow(row) {
   el('file-path').value = saved.filePath;
   el('encryption-key').value = saved.encryptionKeyHex;
   if (saved.filePath) {
-    openConnection(saved.filePath, saved.encryptionKeyHex);
+    openConnection(saved.filePath, saved.encryptionKeyHex, { restoreFromUrl: true });
   }
 })();
