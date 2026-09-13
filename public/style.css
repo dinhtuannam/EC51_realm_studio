@@ -13,6 +13,10 @@
   --bg-hover: #12121f;
   --bg-input: #0c0c16;
   --border: #1c2733;
+  /* Đậm hơn --border 1 chút - dùng riêng cho vạch dọc phân chia cột trong
+     bảng dữ liệu, để ranh giới cột rõ ràng hơn --border (vốn dùng cho viền
+     ngoài/vạch ngang, cố tình mờ hơn). */
+  --border-strong: #354a5c;
   --text: #eafcff;
   --text-muted: #7a95a0;
   /* Cyan = "circuitry" color: focus rings, borders, active states, brand,
@@ -395,8 +399,13 @@ th, td {
   padding: 8px 12px;
   text-align: left;
   border-bottom: 1px solid var(--border);
+  /* Vạch dọc phân chia giữa các cột - rõ hơn --border (dùng cho viền
+     ngoài/vạch ngang) một chút theo yêu cầu, để phân biệt ranh giới cột
+     rõ ràng hơn khi bảng có nhiều cột. */
+  border-right: 1px solid var(--border-strong);
   white-space: nowrap;
 }
+th:last-child, td:last-child { border-right: none; }
 th {
   background: var(--bg-hover);
   color: var(--text-muted);
@@ -416,17 +425,57 @@ tbody tr:last-child td { border-bottom: none; }
 .row-actions { display: flex; gap: 4px; }
 .select-col { width: 1%; white-space: nowrap; text-align: center; }
 
-/* accent-color nhuộm lại checkbox theo theme tối thay vì màu xanh mặc định
-   của OS - cùng kỹ thuật đã dùng cho radio-option bên dưới. */
+/* accent-color chỉ đổi được màu lúc ĐÃ CHỌN - lúc CHƯA chọn, checkbox vẫn
+   là ô vuông trắng/xám mặc định của OS, lạc quẻ hẳn với nền tối. Nên vẽ tay
+   toàn bộ (appearance:none bỏ hết giao diện gốc của trình duyệt), kể cả
+   trạng thái chưa chọn, để luôn đồng bộ với theme dù ở trạng thái nào. */
 input[type="checkbox"] {
-  width: 15px;
-  height: 15px;
-  accent-color: var(--accent);
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 4px;
+  background: var(--bg-input);
   cursor: pointer;
   vertical-align: middle;
+  position: relative;
+  transition: border-color 0.12s ease, background-color 0.12s ease, box-shadow 0.12s ease;
+}
+input[type="checkbox"]:hover { border-color: var(--accent); }
+input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 8px var(--accent-soft);
+}
+/* Dấu tick tự vẽ bằng border (2 cạnh của 1 hình vuông xoay 45deg) thay vì
+   ký tự/ảnh - không cần font icon hay SVG rời. */
+input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 4.5px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid var(--bg);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+input[type="checkbox"]:indeterminate {
+  background: var(--text-muted);
+  border-color: var(--text-muted);
+}
+input[type="checkbox"]:indeterminate::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 6.5px;
+  width: 8px;
+  height: 2px;
+  background: var(--bg);
 }
 input[type="checkbox"]:disabled { cursor: not-allowed; opacity: 0.5; }
-input[type="checkbox"]:indeterminate { accent-color: var(--text-muted); }
 
 .empty-cell { text-align: center; padding: 32px 12px; color: var(--text-muted); white-space: normal; }
 .empty-state {
@@ -582,7 +631,36 @@ tr.row-highlight { animation: row-highlight-fade 3s ease-in; }
   cursor: pointer;
   padding: 5px 0;
 }
-.radio-option input[type="radio"] { accent-color: var(--accent); cursor: pointer; }
+/* Cùng lý do như checkbox ở trên: accent-color không đổi được giao diện lúc
+   CHƯA chọn (vẫn là vòng tròn trắng mặc định của OS) - vẽ tay toàn bộ bằng
+   appearance:none để đồng bộ theme ở mọi trạng thái. */
+.radio-option input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: 1.5px solid var(--border-strong);
+  border-radius: 50%;
+  background: var(--bg-input);
+  cursor: pointer;
+  position: relative;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.radio-option input[type="radio"]:hover { border-color: var(--accent); }
+.radio-option input[type="radio"]:checked { border-color: var(--accent); box-shadow: 0 0 8px var(--accent-soft); }
+.radio-option input[type="radio"]:checked::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+  transform: translate(-50%, -50%);
+}
 .radio-option:has(input:disabled) { color: var(--text-muted); cursor: not-allowed; opacity: 0.6; }
 .radio-option:has(input:disabled) input { cursor: not-allowed; }
 
