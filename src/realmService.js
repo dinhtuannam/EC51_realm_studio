@@ -120,6 +120,9 @@ function listObjects(className, filter) {
   for (let i = 0; i < Math.min(total, MAX_RESULTS); i += 1) {
     const obj = results[i];
     const row = serializeObject(obj, clientSchema);
+    // No primaryKey: __ref is the index into THIS (possibly filtered) result set.
+    // Callers must pass the same filter back on update/delete or the ref can
+    // resolve to a different record once the underlying data changes.
     row.__ref = objSchema.primaryKey ? obj[objSchema.primaryKey] : i;
     rows.push(row);
   }
