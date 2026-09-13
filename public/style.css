@@ -420,6 +420,22 @@ tr.row-highlight { animation: row-highlight-fade 3s ease-in; }
 #confirm-message { margin: 0 0 20px; font-size: 13px; line-height: 1.5; }
 .confirm-actions { display: flex; justify-content: flex-end; gap: 8px; }
 
+/* ---------- Error dialog (replaces the native alert()) ---------- */
+#error-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Must outrank every other overlay (edit=100, export/import=200,
+     confirm=300): an error can surface while any of those are open. */
+  z-index: 400;
+  padding: 16px;
+}
+.error-title { margin: 0 0 12px; font-size: 15px; font-weight: 600; color: var(--danger); }
+#error-message { margin: 0 0 20px; font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
+
 /* ---------- Export/Import dialogs (shared look) ---------- */
 #export-overlay, #import-overlay {
   position: fixed;

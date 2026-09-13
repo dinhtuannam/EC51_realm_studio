@@ -78,9 +78,9 @@ async function api(method, url, body) {
   return payload.data;
 }
 
-// Toast cho mọi thao tác THÀNH CÔNG, alert() (chặn cho tới khi người dùng
-// bấm OK) cho mọi thao tác THẤT BẠI - áp dụng thống nhất cho toàn bộ app
-// thay vì 1 thanh trạng thái dễ bị lướt qua như trước.
+// Toast cho mọi thao tác THÀNH CÔNG, dialog lỗi tự vẽ (chặn cho tới khi
+// người dùng bấm OK) cho mọi thao tác THẤT BẠI - áp dụng thống nhất cho
+// toàn bộ app thay vì 1 thanh trạng thái dễ bị lướt qua như trước.
 function showToast(message) {
   const container = el('toast-container');
   const toast = document.createElement('div');
@@ -90,8 +90,26 @@ function showToast(message) {
   container.appendChild(toast);
 }
 
+// Dialog lỗi tự vẽ (thay cho alert() mặc định của browser, vốn nhìn lạc quẻ
+// với theme tối) - cùng kiểu dáng với showConfirm(). Giữ nguyên chữ ký
+// showError(message) nên mọi nơi đang gọi hàm này không cần đổi gì.
 function showError(message) {
-  alert(message);
+  el('error-message').textContent = message;
+  el('error-overlay').hidden = false;
+
+  const okBtn = el('error-ok');
+  const overlay = el('error-overlay');
+
+  function cleanup() {
+    overlay.hidden = true;
+    okBtn.removeEventListener('click', onOk);
+    overlay.removeEventListener('click', onOverlayClick);
+  }
+  function onOk() { cleanup(); }
+  function onOverlayClick(e) { if (e.target === overlay) cleanup(); }
+
+  okBtn.addEventListener('click', onOk);
+  overlay.addEventListener('click', onOverlayClick);
 }
 
 // Dialog xác nhận tự vẽ (thay cho confirm() mặc định của browser, vốn nhìn
