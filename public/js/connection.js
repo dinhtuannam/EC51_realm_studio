@@ -50,6 +50,7 @@ async function openConnection(filePath, encryptionKeyHex, { restoreFromUrl = fal
     // phía trên (xem quy tắc html.connected trong style.css) - chỉ 1 class,
     // không có logic show/hide nào khác cần thêm.
     document.documentElement.classList.add('connected');
+    el('snapshot-btn').hidden = false;
     showToast(`Đã mở file thành công. Tìm thấy ${schema.length} table.`);
     renderClassList();
     loadClassCounts(schema);
@@ -168,4 +169,21 @@ el('reload-table').addEventListener('click', async () => {
   // dùng chủ động tải lại thay vì chỉ tự động cập nhật sau khi tự sửa.
   await loadObjects();
   refreshOneClassCount(state.currentClass);
+});
+
+el('snapshot-btn').addEventListener('click', async () => {
+  const confirmed = await showConfirm(
+    'Lưu 1 bản snapshot (.realm) của TOÀN BỘ dữ liệu hiện tại vào thư mục snapshots/? File snapshot dùng chung encryption key với file đang mở (nếu có) - Realm Swift có thể mở lại trực tiếp bằng đúng key hiện có.'
+  );
+  if (!confirmed) return;
+  const btn = el('snapshot-btn');
+  btn.disabled = true;
+  try {
+    const result = await api('POST', '/api/snapshot');
+    showToast(`Đã lưu snapshot: ${result.fileName}.`);
+  } catch (err) {
+    showError(`Lưu snapshot thất bại: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+  }
 });

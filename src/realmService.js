@@ -242,6 +242,26 @@ function deleteObject(className, ref, filter) {
   });
 }
 
+// Ghi 1 bản copy đã compact của realm ĐANG MỞ ra `destPath`, dùng CÙNG
+// encryption key (nếu có) với file đang mở - để Realm Swift mở lại được
+// bằng đúng key/Keychain hiện có, không cần đổi gì phía app Swift.
+// realm.writeCopyTo() lấy dữ liệu hiện tại (kể cả write transaction chưa
+// commit xong), và yêu cầu destPath CHƯA tồn tại - việc dựng tên file duy
+// nhất (timestamp) là trách nhiệm của snapshotService.js, không phải ở đây.
+function writeSnapshot(destPath) {
+  const realm = assertOpen();
+  const encryptionKey = parseEncryptionKey(currentEncryptionKeyHex);
+  const config = { path: destPath };
+  // Chỉ set field encryptionKey khi thật sự có key - tránh truyền
+  // `encryptionKey: undefined` (không rõ realm-js coi property có mặt
+  // nhưng undefined khác gì với property vắng mặt hoàn toàn).
+  if (encryptionKey) {
+    config.encryptionKey = encryptionKey;
+  }
+  realm.writeCopyTo(config);
+  return { sourcePath: realm.path };
+}
+
 module.exports = {
   openRealm,
   closeRealm,
@@ -253,4 +273,5 @@ module.exports = {
   createObject,
   updateObject,
   deleteObject,
+  writeSnapshot,
 };
