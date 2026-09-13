@@ -190,7 +190,7 @@ function renderTable() {
   const headRow = document.createElement('tr');
   for (const prop of state.currentSchema.properties) {
     const th = document.createElement('th');
-    th.textContent = `${prop.name} (${prop.type})`;
+    th.textContent = prop.name;
     headRow.appendChild(th);
   }
   headRow.appendChild(document.createElement('th'));
@@ -235,6 +235,14 @@ el('clear-filter').addEventListener('click', () => {
   loadObjects();
 });
 
+el('reload-table').addEventListener('click', async () => {
+  // Data can change out from under this tool (e.g. the Swift app writing to
+  // the same file while it's being inspected here), so let the user pull
+  // fresh data on demand instead of only reacting to their own edits.
+  await loadObjects();
+  refreshOneClassCount(state.currentClass);
+});
+
 el('new-record').addEventListener('click', () => openEditForm(null));
 
 function openEditForm(row) {
@@ -253,7 +261,10 @@ function openEditForm(row) {
     // editing an existing row that field is locked (server also drops it).
     const isPrimaryKey = row && primaryKey && prop.name === primaryKey;
     const label = document.createElement('label');
-    label.textContent = `${prop.name} (${prop.type}${prop.optional ? ', optional' : ''}${isPrimaryKey ? ', primary key - khong sua duoc' : ''})`;
+    const annotations = [];
+    if (prop.optional) annotations.push('optional');
+    if (isPrimaryKey) annotations.push('primary key - khong sua duoc');
+    label.textContent = annotations.length ? `${prop.name} (${annotations.join(', ')})` : prop.name;
     const input = document.createElement('input');
     input.type = prop.type === 'bool' ? 'checkbox' : 'text';
     input.name = prop.name;
@@ -311,8 +322,12 @@ el('edit-form').addEventListener('submit', async (e) => {
     if (wasCreate) {
       refreshOneClassCount(state.currentClass);
     }
+    // Set after loadObjects() (which clears #status on its own success path),
+    // otherwise this message would be wiped out immediately.
+    setStatus(wasCreate ? 'Da tao record moi thanh cong.' : 'Da luu thay doi thanh cong.', false);
   } catch (err) {
     el('edit-error').textContent = err.message;
+    setStatus(`Luu that bai: ${err.message}`, true);
   }
 });
 
@@ -326,8 +341,9 @@ async function deleteRow(row) {
     );
     await loadObjects();
     refreshOneClassCount(state.currentClass);
+    setStatus('Da xoa record thanh cong.', false);
   } catch (err) {
-    setStatus(err.message, true);
+    setStatus(`Xoa that bai: ${err.message}`, true);
   }
 }
 
