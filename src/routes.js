@@ -3,6 +3,7 @@
 const express = require('express');
 const realmService = require('./realmService');
 const exportService = require('./exportService');
+const importService = require('./importService');
 
 const router = express.Router();
 
@@ -45,6 +46,11 @@ router.get('/objects/:className/count', handle(async (req) => {
 router.post('/objects/:className/export', handle(async (req) => {
   const { filter, format } = req.body || {};
   return exportService.exportObjects(req.params.className, filter || '', format);
+}));
+
+router.post('/objects/:className/import', handle(async (req) => {
+  const { filePath, mode } = req.body || {};
+  return importService.importCsv(req.params.className, filePath, mode);
 }));
 
 router.post('/objects/:className', handle(async (req) => {

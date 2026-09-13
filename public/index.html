@@ -60,6 +60,10 @@
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Thêm mới
         </button>
+        <button id="import-data" type="button" class="btn btn-ghost btn-import">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Import
+        </button>
         <button id="export-data" type="button" class="btn btn-ghost btn-export">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Export
@@ -92,8 +96,33 @@
     </div>
   </div>
 
+  <div id="import-overlay" hidden>
+    <div class="dialog-card">
+      <h2>Import dữ liệu</h2>
+      <div class="field">
+        <label class="field-title">Đường dẫn file CSV <span class="field-hint">(hiện chỉ hỗ trợ CSV)</span></label>
+        <input type="text" id="import-file-path" placeholder="/duong/dan/toi/file.csv" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label class="field-title">Chế độ</label>
+        <label class="radio-option">
+          <input type="radio" name="import-mode" id="import-mode-append" value="append" checked />
+          Thêm mới (giữ dữ liệu hiện có, thêm dữ liệu từ file)
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="import-mode" id="import-mode-overwrite" value="overwrite" />
+          Ghi đè (xoá toàn bộ dữ liệu hiện có, thay bằng dữ liệu từ file)
+        </label>
+      </div>
+      <div class="edit-actions">
+        <button type="button" id="import-cancel" class="btn btn-ghost">Hủy</button>
+        <button type="button" id="import-confirm" class="btn btn-primary">Import</button>
+      </div>
+    </div>
+  </div>
+
   <div id="export-overlay" hidden>
-    <div class="export-card">
+    <div class="dialog-card">
       <h2>Export dữ liệu</h2>
       <div class="field">
         <label class="field-title">Phạm vi dữ liệu</label>

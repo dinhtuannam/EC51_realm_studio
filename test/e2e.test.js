@@ -3,6 +3,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const { createApp } = require('../src/app');
 const realmService = require('../src/realmService');
 const { buildFixtureRealm } = require('./fixtures/buildFixture');
@@ -77,6 +79,34 @@ test('HTTP API end-to-end: open, schema, CRUD qua HTTP that su', async (t) => {
   const badFormatBody = await badFormatRes.json();
   assert.equal(badFormatRes.status, 400);
   assert.equal(badFormatBody.ok, false);
+
+  const csvDir = fs.mkdtempSync(path.join(os.tmpdir(), 'realm-dev-tool-e2e-import-'));
+  const csvPath = path.join(csvDir, 'import.csv');
+  fs.writeFileSync(csvPath, 'id,name,age,active\np9,Zed,50,true\n', 'utf8');
+  const importRes = await fetch(`${base}/api/objects/Person/import`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filePath: csvPath, mode: 'append' }),
+  });
+  const importBody = await importRes.json();
+  assert.equal(importRes.status, 200);
+  assert.equal(importBody.ok, true);
+  assert.equal(importBody.data.insertedCount, 1);
+  const afterImportRes = await fetch(`${base}/api/objects/Person`);
+  const afterImportBody = await afterImportRes.json();
+  assert.equal(afterImportBody.data.total, 3, 'the imported row must be visible alongside the original 2');
+
+  // Mode is validated before the file is even read, so this still returns a
+  // clean 400 rather than a file-not-found error.
+  const badModeRes = await fetch(`${base}/api/objects/Person/import`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filePath: csvPath, mode: 'merge' }),
+  });
+  const badModeBody = await badModeRes.json();
+  assert.equal(badModeRes.status, 400);
+  assert.equal(badModeBody.ok, false);
+  fs.rmSync(csvDir, { recursive: true, force: true });
 
   const createRes = await fetch(`${base}/api/objects/Person`, {
     method: 'POST',

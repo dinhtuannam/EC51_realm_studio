@@ -477,6 +477,59 @@ el('export-confirm').addEventListener('click', async () => {
   }
 });
 
+const IMPORT_MODE_IDS = { append: 'import-mode-append', overwrite: 'import-mode-overwrite' };
+
+el('import-data').addEventListener('click', () => {
+  if (!state.currentClass) return;
+  el('import-file-path').value = '';
+  el(IMPORT_MODE_IDS.append).checked = true;
+  el(IMPORT_MODE_IDS.overwrite).checked = false;
+  el('import-overlay').hidden = false;
+});
+
+el('import-cancel').addEventListener('click', () => {
+  el('import-overlay').hidden = true;
+});
+
+el('import-overlay').addEventListener('click', (e) => {
+  if (e.target === el('import-overlay')) el('import-overlay').hidden = true;
+});
+
+el('import-confirm').addEventListener('click', async () => {
+  const filePath = el('import-file-path').value.trim();
+  if (!filePath) {
+    showError('Vui lòng nhập đường dẫn file CSV cần import.');
+    return;
+  }
+  const mode = getCheckedRadioValue(IMPORT_MODE_IDS, 'append');
+  // "Ghi đè" xoá toàn bộ dữ liệu hiện có trước khi import - đây là thao tác
+  // phá huỷ dữ liệu không thể hoàn tác trong tool này, nên bắt xác nhận
+  // thêm 1 lần nữa (giống Delete), thay vì chỉ dựa vào việc chọn đúng radio.
+  if (mode === 'overwrite') {
+    const confirmed = await showConfirm(
+      `"Ghi đè" sẽ XÓA TOÀN BỘ dữ liệu hiện có trong table "${state.currentClass}" trước khi import từ file CSV. Bạn có chắc chắn muốn tiếp tục?`
+    );
+    if (!confirmed) return;
+  }
+  const btn = el('import-confirm');
+  btn.disabled = true;
+  try {
+    const result = await api('POST', `/api/objects/${encodeURIComponent(state.currentClass)}/import`, { filePath, mode });
+    el('import-overlay').hidden = true;
+    await loadObjects();
+    refreshOneClassCount(state.currentClass);
+    const modeLabel = mode === 'overwrite' ? 'Ghi đè' : 'Thêm mới';
+    const skippedNote = result.skippedColumns.length
+      ? ` Đã bỏ qua ${result.skippedColumns.length} cột không có trong table: ${result.skippedColumns.join(', ')}.`
+      : '';
+    showToast(`Đã import ${result.insertedCount} record vào table "${state.currentClass}" (chế độ: ${modeLabel}).${skippedNote}`);
+  } catch (err) {
+    showError(`Import thất bại: ${err.message}`);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
 function openEditForm(sourceRow, { duplicate = false } = {}) {
   const isEditingExisting = !!sourceRow && !duplicate;
   state.editingRef = isEditingExisting ? sourceRow.__ref : null;

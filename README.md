@@ -37,6 +37,24 @@ Nút **Export** cạnh **Thêm mới** mở hộp thoại chọn:
 File được lưu vào thư mục `exports/` (không commit vào git) với tên
 `{tên table}_yyyymmdd_hhmmss.<đuôi file>`, ví dụ `Person_20260913_143000.csv`.
 
+## Import
+
+Nút **Import** cạnh **Export** mở hộp thoại nhập:
+- **Đường dẫn file CSV** cần import (hiện chỉ hỗ trợ CSV).
+- **Chế độ**: "Thêm mới" (giữ dữ liệu hiện có, thêm dữ liệu từ file) hoặc
+  "Ghi đè" (xoá toàn bộ dữ liệu hiện có của table trước khi import — sẽ hỏi
+  xác nhận thêm 1 lần vì đây là thao tác không thể hoàn tác).
+
+Quy tắc map cột:
+- Cột có trong CSV nhưng table không có: bỏ qua cột đó.
+- Cột table có nhưng CSV không có: để giá trị mặc định theo type (chuỗi rỗng,
+  số 0, false...).
+- Cột `primaryKey`: nếu CSV có cột trùng tên primary key của table thì dùng
+  giá trị đó; nếu CSV không có cột này hoặc giá trị đó bị trùng với record đã
+  có sẵn (hoặc trùng với record khác vừa import trong cùng file), tool tự
+  sinh 1 id tăng dần mới thay vào — record gốc trùng id không bao giờ bị ghi
+  đè bởi import.
+
 ## Giới hạn đã biết
 
 - Chỉ hỗ trợ field kiểu đơn giản (string/int/double/bool/date/...). Field kiểu

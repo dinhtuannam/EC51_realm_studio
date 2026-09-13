@@ -316,4 +316,5 @@ module.exports = {
   createObject,
   updateObject,
   deleteObject,
+  buildWriteValues,
 };
