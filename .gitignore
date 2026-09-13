@@ -1,0 +1,5 @@
+node_modules/
+*.realm
+*.realm.lock
+*.realm.management/
+.DS_Store
