@@ -49,7 +49,6 @@ el('export-confirm').addEventListener('click', async () => {
 });
 
 const IMPORT_MODE_IDS = { append: 'import-mode-append', overwrite: 'import-mode-overwrite' };
-const IMPORT_FORMAT_IDS = { csv: 'import-format-csv', markdown: 'import-format-markdown' };
 
 // Browser (trình duyệt) không cho JS lấy đường dẫn tuyệt đối thật của file
 // chọn qua <input type="file"> (lý do bảo mật) - chỉ có tên file. Nên thay
@@ -57,6 +56,15 @@ const IMPORT_FORMAT_IDS = { csv: 'import-format-csv', markdown: 'import-format-m
 // gửi content đó lên server để import, không cần biết path thật ở đâu.
 let importFileContent = null;
 let importFileName = '';
+// Định dạng suy ra thẳng từ đuôi file, không cho chọn riêng - đuôi file đã
+// đủ để phân biệt CSV/Markdown, thêm 1 lựa chọn nữa chỉ thừa và dễ chọn sai
+// (chọn nhầm "CSV" cho 1 file .md thật ra vẫn để radio ở giá trị cũ...).
+let importFileFormat = 'csv';
+
+function detectImportFormat(fileName) {
+  const ext = fileName.slice(fileName.lastIndexOf('.') + 1).toLowerCase();
+  return ext === 'md' || ext === 'markdown' ? 'markdown' : 'csv';
+}
 
 // Kiểm tra tên file có "khớp" với table đang chọn không, để cảnh báo trước
 // khi import nhầm file. Chấp nhận khớp chính xác (Person.csv) hoặc đúng quy
@@ -79,6 +87,7 @@ el('import-file-input').addEventListener('change', async () => {
   if (!file) return;
   el('import-file-name').textContent = file.name;
   importFileName = file.name;
+  importFileFormat = detectImportFormat(file.name);
   try {
     importFileContent = await file.text();
   } catch (err) {
@@ -93,10 +102,9 @@ el('import-data').addEventListener('click', () => {
   if (!state.currentClass) return;
   importFileContent = null;
   importFileName = '';
+  importFileFormat = 'csv';
   el('import-file-name').textContent = 'Chưa chọn file';
   el('import-file-input').value = ''; // để chọn lại đúng file cũ vẫn bắn 'change'
-  el(IMPORT_FORMAT_IDS.csv).checked = true;
-  el(IMPORT_FORMAT_IDS.markdown).checked = false;
   el(IMPORT_MODE_IDS.append).checked = true;
   el(IMPORT_MODE_IDS.overwrite).checked = false;
   el('import-overlay').hidden = false;
@@ -116,7 +124,7 @@ el('import-confirm').addEventListener('click', async () => {
     return;
   }
   const mode = getCheckedRadioValue(IMPORT_MODE_IDS, 'append');
-  const format = getCheckedRadioValue(IMPORT_FORMAT_IDS, 'csv');
+  const format = importFileFormat;
   const nameMismatch = !fileNameMatchesTable(importFileName, state.currentClass);
   const mismatchWarning = nameMismatch
     ? `Tên file "${importFileName}" có vẻ KHÔNG khớp với table "${state.currentClass}" đang chọn. Vui lòng kiểm tra lại đúng file trước khi tiếp tục.`

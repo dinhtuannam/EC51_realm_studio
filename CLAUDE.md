@@ -22,7 +22,7 @@ test app Swift — **không phải sản phẩm production**. Repo:
   không Tailwind, không CDN font, không framework, không build step — CSS/JS
   tự viết tay. CSV parser/writer, "Excel" export (SpreadsheetML XML, không
   phải `.xlsx` thật) đều tự viết để tránh thêm lib.
-- **Frontend là 7 file `<script>` cổ điển (KHÔNG phải ES module).** Xem mục
+- **Frontend là 8 file `<script>` cổ điển (KHÔNG phải ES module).** Xem mục
   "Kiến trúc frontend" bên dưới — đừng đổi sang `type="module"` mà không đọc
   kỹ lý do (ảnh hưởng tới cách viết test bằng `vm`).
 - **Mọi text hiển thị cho user phải là tiếng Việt có dấu đầy đủ** — kể cả
@@ -117,10 +117,11 @@ public/
   index.html           1 trang duy nhất (không SPA router). Chứa TẤT CẢ
                         overlay/dialog dưới dạng <div hidden>: edit-overlay
                         (Thêm mới/Sửa/Nhân bản dùng chung), confirm-overlay,
-                        error-overlay, import-overlay, export-overlay. Thứ tự
-                        7 <script src="js/*.js"> ở cuối file CÓ Ý NGHĨA — xem
-                        "Kiến trúc frontend" bên dưới, đừng sắp xếp lại tuỳ
-                        tiện.
+                        error-overlay, import-overlay, export-overlay,
+                        troll-paywall-overlay/troll-quiz-overlay (đùa, xem
+                        public/js/troll.js). Thứ tự 8 <script src="js/*.js">
+                        ở cuối file CÓ Ý NGHĨA — xem "Kiến trúc frontend" bên
+                        dưới, đừng sắp xếp lại tuỳ tiện.
   style.css            Design token trong :root (--bg, --accent, --danger,
                         --edit/--duplicate/--reload/--export/--import/--clear
                         mỗi cái có biến -soft/-border rgba riêng cho từng nút
@@ -130,7 +131,7 @@ public/
                         overlay: edit=100, export/import=200, confirm=300,
                         error=400 (error luôn phải cao nhất vì lỗi có thể xảy
                         ra khi bất kỳ overlay nào khác đang mở).
-  js/                  Xem "Kiến trúc frontend" — 7 file, KHÔNG phải ES
+  js/                  Xem "Kiến trúc frontend" — 8 file, KHÔNG phải ES
                         module, chia sẻ 1 global scope.
 
 test/
@@ -163,11 +164,11 @@ exports/, logs/         Gitignored, tự sinh lúc chạy. *.realm, *.realm.lock
 
 ## Kiến trúc frontend (public/js/)
 
-7 file, MỖI FILE LÀ 1 `<script src="...">` CỔ ĐIỂN (không `type="module"`),
+8 file, MỖI FILE LÀ 1 `<script src="...">` CỔ ĐIỂN (không `type="module"`),
 load theo đúng thứ tự khai báo trong `index.html`:
 
 ```
-core.js → sidebar.js → connection.js → table.js → editForm.js → importExport.js → main.js
+core.js → sidebar.js → connection.js → table.js → editForm.js → importExport.js → troll.js → main.js
 ```
 
 **Vì sao không dùng ES module:** toàn bộ session build tool này đã dùng 1 kỹ
@@ -182,7 +183,7 @@ phức tạp hơn nhiều). Giữ classic script để kỹ thuật test này ti
 
 **Vì sao thứ tự file (phần lớn) không quan trọng dù chia sẻ 1 scope:** các
 file gọi hàm của nhau CHỈ bên trong closure (event handler / thân hàm async),
-được resolve lúc người dùng thao tác thật — tức là SAU KHI toàn bộ 7 script
+được resolve lúc người dùng thao tác thật — tức là SAU KHI toàn bộ 8 script
 đã chạy xong tuần tự. Ví dụ `table.js` gọi `openEditForm(row)` (định nghĩa ở
 `editForm.js`, load SAU `table.js`) bên trong 1 `addEventListener('click', …)`
 — hợp lệ vì `openEditForm` đã tồn tại trong global scope từ trước khi user
@@ -197,10 +198,11 @@ kịp click bất cứ gì.
   localStorage, cần MỌI hàm khác (openConnection ở connection.js,
   renderClassList ở sidebar.js, v.v.) đã tồn tại.
 
-Giữa `sidebar.js`/`connection.js`/`table.js`/`editForm.js`/`importExport.js`:
-thứ tự không quan trọng về mặt chạy đúng, nhưng thứ tự hiện tại được sắp theo
-luồng phụ thuộc logic (connection load data → table hiển thị data → editForm
-sửa data → importExport nhập/xuất data) để dễ đọc.
+Giữa `sidebar.js`/`connection.js`/`table.js`/`editForm.js`/`importExport.js`/
+`troll.js`: thứ tự không quan trọng về mặt chạy đúng, nhưng thứ tự hiện tại
+được sắp theo luồng phụ thuộc logic (connection load data → table hiển thị
+data → editForm sửa data → importExport nhập/xuất data → troll đùa sau khi
+editForm lưu) để dễ đọc.
 
 **Nội dung từng file** (đọc trực tiếp file để biết chi tiết, đây chỉ là mục
 lục):
@@ -222,8 +224,22 @@ lục):
   `duplicate=true` → nhân bản (primaryKey KHÔNG khoá, vì đây là tạo record
   mới, bắt buộc phải đổi PK)).
 - `importExport.js` — modal Export (CSV/Excel/Markdown, phạm vi dữ liệu hiện
-  tại/toàn bộ) và Import (CSV, chế độ Ghi đè/Thêm mới, cảnh báo khi tên file
-  không khớp tên table qua `fileNameMatchesTable`).
+  tại/toàn bộ) và Import (CSV hoặc Markdown, chế độ Ghi đè/Thêm mới, cảnh báo
+  khi tên file không khớp tên table qua `fileNameMatchesTable`). Import
+  KHÔNG có radio chọn format — `detectImportFormat(fileName)` tự suy ra
+  'csv'/'markdown' từ ĐUÔI FILE lúc chọn file (`.md`/`.markdown` → markdown,
+  còn lại → csv), lưu vào biến `importFileFormat` module-level. Đã từng có
+  radio chọn format riêng nhưng bị bỏ theo yêu cầu user vì dư thừa (đuôi
+  file đã đủ phân biệt) — đừng thêm lại radio đó.
+- `troll.js` — TRÒ ĐÙA đồng nghiệp, KHÔNG phải tính năng thật, không ảnh
+  hưởng dữ liệu/logic chính. Sau lần "Lưu" thành công thứ 3
+  (`notifyEditFormSaved()`, gọi từ `editForm.js`), hiện modal giả "hết hạn
+  dùng thử" → câu đố đạo hàm 4 đáp án, sai thì chê + rung, đúng thì thôi.
+  Chỉ trigger ĐÚNG 1 LẦN DUY NHẤT nhờ cờ `localStorage['ec51RealmStudio.trollShown']` (sống sót qua F5) — đánh dấu ngay lúc modal HIỆN RA, không đợi
+  giải xong. Nếu user muốn gỡ trò đùa này: xoá `<script src="js/troll.js">`
+  trong `index.html`, xoá lời gọi `notifyEditFormSaved()` trong
+  `editForm.js`, xoá file `troll.js` và 2 overlay `troll-*` trong
+  `index.html` — không đụng gì khác.
 - `main.js` — bootstrap, tự mở lại file/key đã lưu.
 
 ## Các bất biến/gotcha quan trọng (đọc trước khi sửa phần liên quan)
@@ -291,7 +307,7 @@ commit) để verify bằng kỹ thuật "mocked browser chạy code thật":
    nên auto-vivify element giả có `classList`, `dataset`, `addEventListener`/
    `dispatchEvent`, `querySelector(All)` tree-based, `innerHTML` setter phải
    RESET `_children` — bug hay gặp nếu quên).
-2. Load 7 file theo ĐÚNG thứ tự trong `index.html` bằng nhiều lệnh
+2. Load 8 file theo ĐÚNG thứ tự trong `index.html` bằng nhiều lệnh
    `vm.runInContext(fs.readFileSync(...), sandbox)` liên tiếp trên CÙNG 1
    `sandbox` — biến `let`/`const` top-level của file trước vẫn tồn tại khi
    file sau chạy (Node vm giữ chung 1 global lexical scope cho 1 context qua
@@ -323,9 +339,22 @@ gần như nguyên xi.
 
 ## Quy ước UI đã thiết lập (giữ nhất quán khi thêm tính năng mới)
 
-- Theme tối kiểu dev tool (Linear/Vercel/Supabase Studio), design token ở
-  `:root` trong `style.css`, mỗi hành động (edit/duplicate/reload/export/
-  import/clear/danger) có màu riêng qua class `.btn-*`/`.icon-btn-*`.
+- Theme: neon cyberpunk (cyan `--accent` #00f0ff cho viền/focus/active/brand,
+  magenta `--primary` #ff2fd6 CHỈ dành cho nút hành động chính mỗi màn hình)
+  trên nền đen tuyền `--bg` #05050a — KHÔNG còn là theme "Linear/Vercel" tông
+  indigo trung tính như bản redesign đầu tiên, đã đổi hẳn sang hướng này theo
+  yêu cầu user. Design token ở `:root` trong `style.css`. Bo góc CỐ Ý nhỏ
+  (`--radius-sm/--radius/--radius-lg` chỉ 3/4/6px) cho cảm giác "circuit
+  board" sắc cạnh. `.btn-primary`/`.btn-danger` là kiểu "biển neon" (nền kính
+  mờ + viền phát sáng + chữ có text-shadow), KHÔNG phải fill đặc 1 màu — đã
+  đổi từ fill đặc sang kiểu này vì fill đặc + chữ đen bị chê "xấu". Mỗi hành
+  động khác (edit/duplicate/reload/export/import/clear/danger) có màu riêng
+  qua class `.btn-*`/`.icon-btn-*`, tất cả có glow (`box-shadow`) khi hover.
+  `body`/`#content` có 1 lớp lưới kẻ mờ (`--grid-overlay`) phủ nền. Checkbox
+  và radio dùng `appearance: none` tự vẽ hoàn toàn (border/background/`::after`
+  cho dấu tick hay chấm tròn) - KHÔNG chỉ dựa `accent-color`, vì đó chỉ đổi
+  màu lúc ĐÃ chọn, lúc CHƯA chọn vẫn ra ô vuông/vòng tròn trắng mặc định của
+  OS (đã từng bị báo lạc quẻ với theme tối).
 - Toast (tự biến mất) cho THÀNH CÔNG, dialog lỗi tự vẽ (chặn tới khi bấm OK)
   cho THẤT BẠI — áp dụng cho MỌI thao tác, không có ngoại lệ kiểu "lỗi nhỏ
   thì bỏ qua im lặng".

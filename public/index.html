@@ -115,23 +115,12 @@
     <div class="dialog-card">
       <h2>Import dữ liệu</h2>
       <div class="field">
-        <label class="field-title">File dữ liệu <span class="field-hint">(CSV hoặc Markdown)</span></label>
+        <label class="field-title">File dữ liệu <span class="field-hint">(.csv hoặc .md - tự nhận diện định dạng theo đuôi file)</span></label>
         <div class="file-picker">
           <button type="button" id="import-browse" class="btn btn-ghost">Chọn file...</button>
           <span id="import-file-name" class="file-picker-name">Chưa chọn file</span>
         </div>
         <input type="file" id="import-file-input" accept=".csv,.md,text/csv,text/markdown" hidden />
-      </div>
-      <div class="field">
-        <label class="field-title">Format</label>
-        <label class="radio-option">
-          <input type="radio" name="import-format" id="import-format-csv" value="csv" checked />
-          CSV
-        </label>
-        <label class="radio-option">
-          <input type="radio" name="import-format" id="import-format-markdown" value="markdown" />
-          Markdown
-        </label>
       </div>
       <div class="field">
         <label class="field-title">Chế độ</label>
