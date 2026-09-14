@@ -80,6 +80,63 @@ function parseCsv(content) {
   return { headers, records };
 }
 
+// Đọc lại đúng định dạng bảng Markdown mà exportService.js's toMarkdown() đã
+// ghi ra (`| col1 | col2 |`, dòng kế tiếp `| --- | --- |` là divider, rồi
+// tới các dòng dữ liệu) - để import lại chính file vừa export ra, sửa bằng
+// text editor, rồi import lại. KHÔNG hỗ trợ Markdown table nói chung (không
+// xử lý cột căn lề ":---:" khác divider thường, ô nhiều dòng...) - chỉ là
+// nghịch đảo của toMarkdown().
+function splitMarkdownRow(line) {
+  let trimmed = line.trim();
+  if (trimmed.startsWith('|')) trimmed = trimmed.slice(1);
+  if (trimmed.endsWith('|')) trimmed = trimmed.slice(0, -1);
+  // Tách theo dấu '|' KHÔNG bị escape (bỏ qua '\|' - dấu | thật trong giá
+  // trị, xem escapeMarkdownCell trong exportService.js).
+  const cells = [];
+  let current = '';
+  for (let i = 0; i < trimmed.length; i += 1) {
+    if (trimmed[i] === '\\' && trimmed[i + 1] === '|') {
+      current += '|';
+      i += 1;
+      continue;
+    }
+    if (trimmed[i] === '|') {
+      cells.push(current.trim());
+      current = '';
+      continue;
+    }
+    current += trimmed[i];
+  }
+  cells.push(current.trim());
+  return cells;
+}
+
+function isMarkdownDividerRow(cells) {
+  return cells.length > 0 && cells.every((c) => /^:?-{3,}:?$/.test(c));
+}
+
+function parseMarkdownTable(content) {
+  const lines = content.split(/\r\n|\r|\n/).filter((line) => line.trim() !== '');
+  if (lines.length === 0) {
+    return { headers: [], records: [] };
+  }
+  const headers = splitMarkdownRow(lines[0]);
+  const dataLines = lines.slice(1).filter((line, idx) => {
+    // Dòng ngay sau header là divider ('| --- | --- |') - không phải dữ liệu.
+    if (idx === 0 && isMarkdownDividerRow(splitMarkdownRow(line))) return false;
+    return true;
+  });
+  const records = dataLines.map((line) => {
+    const cells = splitMarkdownRow(line);
+    const obj = {};
+    headers.forEach((h, idx) => {
+      obj[h] = cells[idx] !== undefined ? cells[idx] : '';
+    });
+    return obj;
+  });
+  return { headers, records };
+}
+
 const NUMERIC_PK_TYPES = new Set(['int', 'float', 'double']);
 
 // Yields "1", "2", "3", ... (or numeric 1, 2, 3... for a numeric primary
@@ -105,25 +162,31 @@ function createAutoIncrementIdGenerator(primaryKeyType, usedPkValues) {
 
 const VALID_MODES = new Set(['overwrite', 'append']);
 
-function importCsv(className, csvContent, mode) {
+function validateModeAndContent(mode, content, missingContentMessage) {
   if (!VALID_MODES.has(mode)) {
     const err = new Error(`Chế độ import "${mode}" không hợp lệ. Chỉ hỗ trợ: overwrite, append.`);
     err.statusCode = 400;
     throw err;
   }
-  if (!csvContent) {
-    const err = new Error('Thiếu nội dung file CSV.');
+  if (!content) {
+    const err = new Error(missingContentMessage);
     err.statusCode = 400;
     throw err;
   }
+}
 
+// Logic import THUẦN, dùng chung cho mọi định dạng nguồn (CSV, Markdown...) -
+// nhận vào {headers, records} đã parse sẵn, không quan tâm định dạng gốc là
+// gì. parseCsv()/parseMarkdownTable() là 2 cách khác nhau để tạo ra cùng 1
+// shape này.
+function importParsedData(className, { headers, records }, mode) {
   const realm = realmService.assertOpen();
   const objSchema = realmService.findSchema(className);
   const clientSchema = toClientSchema(objSchema);
   const schemaColumnNames = new Set(clientSchema.properties.map((p) => p.name));
-  const { headers, records } = parseCsv(csvContent);
-  // Cột CSV không có trong table -> bỏ qua. Cột table không có trong CSV ->
-  // để trống (buildWriteValues/coerceValue áp giá trị mặc định theo type).
+  // Cột file import không có trong table -> bỏ qua. Cột table không có
+  // trong file -> để trống (buildWriteValues/coerceValue áp giá trị mặc
+  // định theo type).
   const skippedColumns = headers.filter((h) => !schemaColumnNames.has(h));
 
   const primaryKey = objSchema.primaryKey || null;
@@ -154,12 +217,12 @@ function importCsv(className, csvContent, mode) {
       const values = buildWriteValues(objSchema, fields);
 
       if (primaryKey) {
-        const csvProvidedPk = headers.includes(primaryKey) && record[primaryKey] !== '';
-        // CSV gives a primary key value: use it, UNLESS it collides with a
-        // value already in the table (pre-existing, or from an earlier row
-        // in this same import) - then generate a fresh one instead of
-        // letting Realm reject the whole import on a duplicate-key error.
-        if (!csvProvidedPk || usedPkValues.has(String(values[primaryKey]))) {
+        const sourceProvidedPk = headers.includes(primaryKey) && record[primaryKey] !== '';
+        // File nguồn cho sẵn giá trị primary key: dùng nó, TRỪ KHI trùng với
+        // giá trị đã có sẵn (record cũ, hoặc record khác vừa import trong
+        // cùng lần này) - lúc đó tự sinh giá trị mới thay vì để Realm từ
+        // chối cả lần import vì lỗi trùng khoá.
+        if (!sourceProvidedPk || usedPkValues.has(String(values[primaryKey]))) {
           values[primaryKey] = nextAutoId();
         } else {
           usedPkValues.add(String(values[primaryKey]));
@@ -174,4 +237,14 @@ function importCsv(className, csvContent, mode) {
   return { insertedCount, totalRows: records.length, skippedColumns, mode, className };
 }
 
-module.exports = { importCsv, parseCsv };
+function importCsv(className, csvContent, mode) {
+  validateModeAndContent(mode, csvContent, 'Thiếu nội dung file CSV.');
+  return importParsedData(className, parseCsv(csvContent), mode);
+}
+
+function importMarkdown(className, markdownContent, mode) {
+  validateModeAndContent(mode, markdownContent, 'Thiếu nội dung file Markdown.');
+  return importParsedData(className, parseMarkdownTable(markdownContent), mode);
+}
+
+module.exports = { importCsv, importMarkdown, parseCsv, parseMarkdownTable };

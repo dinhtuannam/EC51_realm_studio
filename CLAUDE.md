@@ -51,10 +51,10 @@ start.command            yêu cầu user vì họ không muốn mở terminal th
 
 src/
   app.js               createApp({logger}) — Express app factory. Middleware:
-                        express.json({limit:'50mb'}) (cần lớn vì CSV import
-                        gửi nguyên nội dung file qua JSON body), request
-                        logger (redact encryptionKeyHex + rút gọn csvContent
-                        trước khi ghi log), express.static('public') với
+                        express.json({limit:'50mb'}) (cần lớn vì import CSV/
+                        Markdown gửi nguyên nội dung file qua JSON body),
+                        request logger (redact encryptionKeyHex + rút gọn
+                        body.content trước khi ghi log), express.static('public') với
                         etag/lastModified TẮT + Cache-Control: no-store (bắt
                         buộc — nếu không browser cache lẫn lộn HTML cũ/JS mới
                         giữa các lần sửa code, trông như "nút có nhưng bấm
@@ -77,16 +77,29 @@ src/
                         coerceValue, buildWriteValues. Tách riêng khỏi
                         realmService.js vì đây là logic convert schema/giá
                         trị qua lại giữa Realm <-> JSON, dùng CHUNG bởi cả
-                        realmService.js (CRUD) và importService.js (CSV ->
-                        giá trị Realm) — trước đây importService.js phải đi
-                        vòng qua `realmService.toClientSchema(...)`, giờ
-                        require thẳng valueConversion.js.
-  importService.js     parseCsv (tự viết, xử lý quoted field/escape/CRLF) +
-                        importCsv(className, csvContent, mode). Nhận CSV dạng
-                        CONTENT (string), KHÔNG nhận filePath — browser không
-                        cho JS lấy đường dẫn thật của file chọn qua
-                        <input type=file>, nên frontend đọc content bằng
-                        file.text() rồi POST content lên. Có
+                        realmService.js (CRUD) và importService.js (CSV/
+                        Markdown -> giá trị Realm) — trước đây importService.js
+                        phải đi vòng qua `realmService.toClientSchema(...)`,
+                        giờ require thẳng valueConversion.js.
+  importService.js     2 parser độc lập - parseCsv (tự viết, xử lý quoted
+                        field/escape/CRLF) và parseMarkdownTable (đọc lại
+                        ĐÚNG định dạng bảng mà exportService.toMarkdown() ghi
+                        ra, để export ra .md, sửa tay, import lại) - đều trả
+                        về CÙNG shape {headers, records}, đưa vào 1 hàm dùng
+                        CHUNG importParsedData(className, {headers,records},
+                        mode) xử lý PK/skip-column/write transaction. Export
+                        ra ngoài: importCsv(className, csvContent, mode) và
+                        importMarkdown(className, markdownContent, mode) - 2
+                        hàm mỏng, chỉ validate rồi gọi parser tương ứng +
+                        importParsedData. Routes.js tự map format ('csv'/
+                        'markdown') sang đúng hàm qua IMPORT_FORMAT_HANDLERS
+                        (không có 1 hàm "importData(format,...)" chung ở
+                        đây, khác với cách exportService tự dispatch bên
+                        trong nó). Nhận nội dung file qua field `content`
+                        (string) trong JSON body, KHÔNG nhận filePath -
+                        browser không cho JS lấy đường dẫn thật của file
+                        chọn qua <input type=file>, nên frontend đọc content
+                        bằng file.text() rồi POST content lên. Có
                         createAutoIncrementIdGenerator — ĐỌC KỸ comment ở đó
                         nếu sửa, đã từng có bug vòng lặp vô hạn khi PK là
                         string và bị trùng (candidate không được re-tính từ
@@ -246,10 +259,12 @@ lục):
    re-dùng biến `candidate` cũ — nếu không sẽ vòng lặp vô hạn với PK kiểu
    string. Đã có test riêng ("3 dòng CSV cùng 1 giá trị id") cho case này,
    ĐỪNG XÓA test đó.
-6. **Import nhận CSV qua `csvContent` (string) trong JSON body, KHÔNG qua
-   filePath** — quyết định có chủ đích vì browser không cho JS đọc đường dẫn
-   thật của file chọn qua `<input type=file>`. `express.json({limit:'50mb'})`
-   tồn tại chính vì lý do này.
+6. **Import nhận nội dung file qua field `content` (string) + `format`
+   ('csv'/'markdown') trong JSON body, KHÔNG qua filePath** — quyết định có
+   chủ đích vì browser không cho JS đọc đường dẫn thật của file chọn qua
+   `<input type=file>`. `express.json({limit:'50mb'})` tồn tại chính vì lý
+   do này. `format` không hợp lệ (khác 'csv'/'markdown') bị `routes.js` từ
+   chối với lỗi tiếng Việt rõ ràng trước khi gọi tới `importService.js`.
 7. **`express.static` phải tắt cache** (`etag:false, lastModified:false`,
    header `Cache-Control: no-store`) — nếu không, sửa `public/*` xong F5 có
    thể vẫn thấy hành vi cũ do browser cache HTML/JS lệch phiên bản nhau.

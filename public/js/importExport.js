@@ -1,10 +1,10 @@
 'use strict';
 
-// Modal Export (CSV/Excel/Markdown) và Import (CSV, chế độ Ghi đè/Thêm mới).
-// Phụ thuộc core.js (state, el, api, showToast, showError, showConfirm,
-// getCheckedRadioValue). Gọi loadObjects()/refreshOneClassCount() sau khi
-// import xong (connection.js/sidebar.js) - chỉ chạy lúc người dùng thao tác,
-// không cần các file đó load trước.
+// Modal Export (CSV/Excel/Markdown) và Import (CSV/Markdown, chế độ Ghi
+// đè/Thêm mới). Phụ thuộc core.js (state, el, api, showToast, showError,
+// showConfirm, getCheckedRadioValue). Gọi loadObjects()/refreshOneClassCount()
+// sau khi import xong (connection.js/sidebar.js) - chỉ chạy lúc người dùng
+// thao tác, không cần các file đó load trước.
 
 const EXPORT_SCOPE_IDS = { current: 'export-scope-current', all: 'export-scope-all' };
 const EXPORT_FORMAT_IDS = { csv: 'export-format-csv', excel: 'export-format-excel', markdown: 'export-format-markdown' };
@@ -49,12 +49,13 @@ el('export-confirm').addEventListener('click', async () => {
 });
 
 const IMPORT_MODE_IDS = { append: 'import-mode-append', overwrite: 'import-mode-overwrite' };
+const IMPORT_FORMAT_IDS = { csv: 'import-format-csv', markdown: 'import-format-markdown' };
 
 // Browser (trình duyệt) không cho JS lấy đường dẫn tuyệt đối thật của file
 // chọn qua <input type="file"> (lý do bảo mật) - chỉ có tên file. Nên thay
 // vì "path", ta đọc thẳng NỘI DUNG file trong trình duyệt (file.text()) và
 // gửi content đó lên server để import, không cần biết path thật ở đâu.
-let importCsvContent = null;
+let importFileContent = null;
 let importFileName = '';
 
 // Kiểm tra tên file có "khớp" với table đang chọn không, để cảnh báo trước
@@ -79,9 +80,9 @@ el('import-file-input').addEventListener('change', async () => {
   el('import-file-name').textContent = file.name;
   importFileName = file.name;
   try {
-    importCsvContent = await file.text();
+    importFileContent = await file.text();
   } catch (err) {
-    importCsvContent = null;
+    importFileContent = null;
     importFileName = '';
     el('import-file-name').textContent = 'Chưa chọn file';
     showError(`Không đọc được file: ${err.message}`);
@@ -90,10 +91,12 @@ el('import-file-input').addEventListener('change', async () => {
 
 el('import-data').addEventListener('click', () => {
   if (!state.currentClass) return;
-  importCsvContent = null;
+  importFileContent = null;
   importFileName = '';
   el('import-file-name').textContent = 'Chưa chọn file';
   el('import-file-input').value = ''; // để chọn lại đúng file cũ vẫn bắn 'change'
+  el(IMPORT_FORMAT_IDS.csv).checked = true;
+  el(IMPORT_FORMAT_IDS.markdown).checked = false;
   el(IMPORT_MODE_IDS.append).checked = true;
   el(IMPORT_MODE_IDS.overwrite).checked = false;
   el('import-overlay').hidden = false;
@@ -108,11 +111,12 @@ el('import-overlay').addEventListener('click', (e) => {
 });
 
 el('import-confirm').addEventListener('click', async () => {
-  if (!importCsvContent) {
-    showError('Vui lòng chọn file CSV cần import.');
+  if (!importFileContent) {
+    showError('Vui lòng chọn file cần import.');
     return;
   }
   const mode = getCheckedRadioValue(IMPORT_MODE_IDS, 'append');
+  const format = getCheckedRadioValue(IMPORT_FORMAT_IDS, 'csv');
   const nameMismatch = !fileNameMatchesTable(importFileName, state.currentClass);
   const mismatchWarning = nameMismatch
     ? `Tên file "${importFileName}" có vẻ KHÔNG khớp với table "${state.currentClass}" đang chọn. Vui lòng kiểm tra lại đúng file trước khi tiếp tục.`
@@ -123,7 +127,7 @@ el('import-confirm').addEventListener('click', async () => {
   // Khi tên file không khớp table, nối thêm cảnh báo vào chính dialog này
   // thay vì hiện thêm 1 dialog riêng.
   if (mode === 'overwrite') {
-    let message = `"Ghi đè" sẽ XÓA TOÀN BỘ dữ liệu hiện có trong table "${state.currentClass}" trước khi import từ file CSV. Bạn có chắc chắn muốn tiếp tục?`;
+    let message = `"Ghi đè" sẽ XÓA TOÀN BỘ dữ liệu hiện có trong table "${state.currentClass}" trước khi import từ file. Bạn có chắc chắn muốn tiếp tục?`;
     if (mismatchWarning) message += `\n\n${mismatchWarning}`;
     const confirmed = await showConfirm(message);
     if (!confirmed) return;
@@ -136,7 +140,7 @@ el('import-confirm').addEventListener('click', async () => {
   const btn = el('import-confirm');
   btn.disabled = true;
   try {
-    const result = await api('POST', `/api/objects/${encodeURIComponent(state.currentClass)}/import`, { csvContent: importCsvContent, mode });
+    const result = await api('POST', `/api/objects/${encodeURIComponent(state.currentClass)}/import`, { content: importFileContent, mode, format });
     el('import-overlay').hidden = true;
     await loadObjects();
     refreshOneClassCount(state.currentClass);

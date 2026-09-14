@@ -14,11 +14,11 @@ function redactBody(body) {
   if ('encryptionKeyHex' in clone) {
     clone.encryptionKeyHex = '[REDACTED]';
   }
-  if (typeof clone.csvContent === 'string') {
-    // Import bodies can carry a whole CSV file (now up to ~50mb, see the
-    // express.json() limit below) - logging it verbatim on every request
-    // would bloat the log file for no diagnostic benefit.
-    clone.csvContent = `[CSV content, ${clone.csvContent.length} ký tự]`;
+  if (typeof clone.content === 'string') {
+    // Import bodies can carry a whole CSV/Markdown file (now up to ~50mb,
+    // see the express.json() limit below) - logging it verbatim on every
+    // request would bloat the log file for no diagnostic benefit.
+    clone.content = `[Nội dung file import, ${clone.content.length} ký tự]`;
   }
   return clone;
 }
@@ -55,8 +55,8 @@ function requestLogger(logger) {
 function createApp({ logger } = {}) {
   const activeLogger = logger || noopLogger();
   const app = express();
-  // Default express.json() limit is 100kb - way too small once CSV import
-  // sends the whole file's content as a JSON string field (see importCsv).
+  // Default express.json() limit is 100kb - way too small once import (CSV
+  // or Markdown) sends the whole file's content as a JSON string field.
   app.use(express.json({ limit: '50mb' }));
   app.use('/api', requestLogger(activeLogger), routes);
   // This tool's whole workflow is "edit public/*, then look at the browser" -

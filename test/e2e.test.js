@@ -83,7 +83,7 @@ test('HTTP API end-to-end: open, schema, CRUD qua HTTP that su', async (t) => {
   const importRes = await fetch(`${base}/api/objects/Person/import`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ csvContent, mode: 'append' }),
+    body: JSON.stringify({ content: csvContent, mode: 'append', format: 'csv' }),
   });
   const importBody = await importRes.json();
   assert.equal(importRes.status, 200);
@@ -93,14 +93,37 @@ test('HTTP API end-to-end: open, schema, CRUD qua HTTP that su', async (t) => {
   const afterImportBody = await afterImportRes.json();
   assert.equal(afterImportBody.data.total, 3, 'the imported row must be visible alongside the original 2');
 
+  const markdownContent = '| id | name | age | active |\n| --- | --- | --- | --- |\n| p10 | Yara | 33 | true |\n';
+  const importMarkdownRes = await fetch(`${base}/api/objects/Person/import`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content: markdownContent, mode: 'append', format: 'markdown' }),
+  });
+  const importMarkdownBody = await importMarkdownRes.json();
+  assert.equal(importMarkdownRes.status, 200);
+  assert.equal(importMarkdownBody.ok, true);
+  assert.equal(importMarkdownBody.data.insertedCount, 1);
+  const afterImportMarkdownRes = await fetch(`${base}/api/objects/Person`);
+  const afterImportMarkdownBody = await afterImportMarkdownRes.json();
+  assert.equal(afterImportMarkdownBody.data.total, 4, 'the Markdown-imported row must be visible alongside the previous 3');
+
   const badModeRes = await fetch(`${base}/api/objects/Person/import`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ csvContent, mode: 'merge' }),
+    body: JSON.stringify({ content: csvContent, mode: 'merge', format: 'csv' }),
   });
   const badModeBody = await badModeRes.json();
   assert.equal(badModeRes.status, 400);
   assert.equal(badModeBody.ok, false);
+
+  const badImportFormatRes = await fetch(`${base}/api/objects/Person/import`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content: csvContent, mode: 'append', format: 'xml' }),
+  });
+  const badImportFormatBody = await badImportFormatRes.json();
+  assert.equal(badImportFormatRes.status, 400);
+  assert.equal(badImportFormatBody.ok, false);
 
   const createRes = await fetch(`${base}/api/objects/Person`, {
     method: 'POST',

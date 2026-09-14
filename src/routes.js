@@ -48,9 +48,24 @@ router.post('/objects/:className/export', handle(async (req) => {
   return exportService.exportObjects(req.params.className, filter || '', format);
 }));
 
+// Dispatch theo format giống cách exportService.js tự chọn FORMAT_HANDLERS
+// bên trong nó - ở đây đặt tại routes.js vì importCsv/importMarkdown là 2
+// hàm export riêng (đã có test gọi thẳng), không có 1 hàm "importData"
+// chung nào để tự dispatch như exportObjects().
+const IMPORT_FORMAT_HANDLERS = {
+  csv: importService.importCsv,
+  markdown: importService.importMarkdown,
+};
+
 router.post('/objects/:className/import', handle(async (req) => {
-  const { csvContent, mode } = req.body || {};
-  return importService.importCsv(req.params.className, csvContent, mode);
+  const { content, mode, format } = req.body || {};
+  const importFn = IMPORT_FORMAT_HANDLERS[format];
+  if (!importFn) {
+    const err = new Error(`Format "${format}" không được hỗ trợ. Chỉ hỗ trợ: csv, markdown.`);
+    err.statusCode = 400;
+    throw err;
+  }
+  return importFn(req.params.className, content, mode);
 }));
 
 router.post('/objects/:className', handle(async (req) => {
