@@ -1,4 +1,4 @@
-# EC51 Realm Studio (dev tool)
+# Realm Studio (dev tool)
 
 Tool nội bộ để xem/sửa dữ liệu file `.realm` mà không cần build app Swift.
 Không dùng cho production — chỉ để dev tự kiểm tra dữ liệu trên máy mình.
