@@ -4,7 +4,7 @@
 
 **Goal:** Build a local, share-friendly dev tool (Node.js + Express backend, plain HTML/JS frontend) that opens an encrypted `.realm` file by path + hex key, and lets a dev view/filter/create/edit/delete records — to verify `realm` npm (core ~20.x) can actually read/write files produced by realm-swift 20.0.4 / realm-core 20.1.4.
 
-**Architecture:** Express serves a small JSON API (`/api/open`, `/api/schema`, `/api/objects/:className`) backed by a single dynamically-opened Realm instance (`src/realmService.js`, no predefined schema — reads schema embedded in the file). A static vanilla-JS page (`public/`) calls this API with `fetch`. Real Swift schema (checked directly in the source at `/Users/mac2605005/Desktop/workspace/ec51-ws-all-flowsource/enecom51_swift/MeterManagement/DataStores/Objects`) has **1225/1225 properties of type String, no lists/links/embedded objects**, so the UI only needs plain text inputs — no nested pickers.
+**Architecture:** Express serves a small JSON API (`/api/open`, `/api/schema`, `/api/objects/:className`) backed by a single dynamically-opened Realm instance (`src/realmService.js`, no predefined schema — reads schema embedded in the file). A static vanilla-JS page (`public/`) calls this API with `fetch`. Real Swift schema (checked directly in the target app's Realm object model source) has **1225/1225 properties of type String, no lists/links/embedded objects**, so the UI only needs plain text inputs — no nested pickers.
 
 **Tech Stack:** Node.js ≥18, Express 5, `realm` npm package (native, N-API, core ~20.x), Node's built-in `node:test` runner (no extra test framework), vanilla HTML/CSS/JS frontend (no build step).
 
@@ -37,7 +37,7 @@
 
 ```json
 {
-  "name": "ec51-realm-studio",
+  "name": "realm-studio",
   "version": "0.1.0",
   "private": true,
   "description": "Dev tool xem/sua du lieu file .realm cuc bo (thu nghiem tuong thich realm-core 20.1.4)",
@@ -727,7 +727,7 @@ const app = createApp();
 
 app.listen(PORT, () => {
   const url = `http://localhost:${PORT}`;
-  console.log(`EC51 Realm Studio dang chay tai ${url}`);
+  console.log(`Realm Studio dang chay tai ${url}`);
   const opener = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
   exec(`${opener} ${url}`, () => {});
 });
@@ -845,12 +845,12 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 <html lang="vi">
 <head>
   <meta charset="utf-8" />
-  <title>EC51 Realm Studio (dev tool)</title>
+  <title>Realm Studio (dev tool)</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header>
-    <h1>EC51 Realm Studio</h1>
+    <h1>Realm Studio</h1>
     <form id="open-form">
       <input type="text" id="file-path" placeholder="Duong dan file .realm" size="50" />
       <input type="text" id="encryption-key" placeholder="Encryption key (hex 128 ky tu, de trong neu khong ma hoa)" size="50" />
@@ -1183,7 +1183,7 @@ Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
 - [ ] **Step 1: Write `README.md`**
 
 ```markdown
-# EC51 Realm Studio (dev tool)
+# Realm Studio (dev tool)
 
 Tool nội bộ để xem/sửa dữ liệu file `.realm` mà không cần build app Swift.
 Không dùng cho production — chỉ để dev tự kiểm tra dữ liệu trên máy mình.

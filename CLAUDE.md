@@ -1,4 +1,4 @@
-# CLAUDE.md — EC51 Realm Studio
+# CLAUDE.md — Realm Studio
 
 Đây là ghi chú kỹ thuật viết cho **AI (Claude) đọc lại ở phiên sau**, không
 phải cho người. Mục tiêu: đọc file này 1 lần là hiểu đủ để code tiếp/sửa lỗi
@@ -11,7 +11,7 @@ Local dev tool (Node/Express + vanilla HTML/CSS/JS, không build step, không
 bundler) để mở/xem/sửa/export/import dữ liệu trong file `.realm` (Realm Swift
 20.0.4 / Realm Core 20.1.4) qua browser, phục vụ dev tự kiểm tra dữ liệu khi
 test app Swift — **không phải sản phẩm production**. Repo:
-`https://github.com/dinhtuannam/EC51_realm_studio.git`.
+`https://github.com/dinhtuannam/RealmStudio.git`.
 
 ## Ràng buộc bất di bất dịch (đã chốt qua nhiều lần yêu cầu của user)
 
@@ -235,7 +235,7 @@ lục):
   hưởng dữ liệu/logic chính. Sau lần "Lưu" thành công thứ 3
   (`notifyEditFormSaved()`, gọi từ `editForm.js`), hiện modal giả "hết hạn
   dùng thử" → câu đố đạo hàm 4 đáp án, sai thì chê + rung, đúng thì thôi.
-  Chỉ trigger ĐÚNG 1 LẦN DUY NHẤT nhờ cờ `localStorage['ec51RealmStudio.trollShown']` (sống sót qua F5) — đánh dấu ngay lúc modal HIỆN RA, không đợi
+  Chỉ trigger ĐÚNG 1 LẦN DUY NHẤT nhờ cờ `localStorage['realmStudio.trollShown']` (sống sót qua F5) — đánh dấu ngay lúc modal HIỆN RA, không đợi
   giải xong. Nếu user muốn gỡ trò đùa này: xoá `<script src="js/troll.js">`
   trong `index.html`, xoá lời gọi `notifyEditFormSaved()` trong
   `editForm.js`, xoá file `troll.js` và 2 overlay `troll-*` trong

@@ -16,7 +16,7 @@
 //    duyệt đó, dù đồng nghiệp có lưu thêm bao nhiêu record hay reload trang
 //    bao nhiêu lần đi nữa. Đánh dấu "đã troll" ngay khi modal HIỆN RA (không
 //    đợi họ giải xong câu đố), để không có cách nào lỡ bị troll lại lần 2.
-const TROLL_STORAGE_KEY = 'ec51RealmStudio.trollShown';
+const TROLL_STORAGE_KEY = 'realmStudio.trollShown';
 
 function hasTrollBeenShown() {
   try {

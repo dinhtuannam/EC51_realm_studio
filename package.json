@@ -1,5 +1,5 @@
 {
-  "name": "ec51-realm-studio",
+  "name": "realm-studio",
   "version": "0.1.0",
   "private": true,
   "description": "Dev tool xem/sua du lieu file .realm cuc bo (thu nghiem tuong thich realm-core 20.1.4)",

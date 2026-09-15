@@ -18,8 +18,8 @@ const ICONS = {
 };
 
 const STORAGE_KEYS = {
-  filePath: 'ec51RealmStudio.filePath',
-  encryptionKeyHex: 'ec51RealmStudio.encryptionKeyHex',
+  filePath: 'realmStudio.filePath',
+  encryptionKeyHex: 'realmStudio.encryptionKeyHex',
 };
 
 // State trung tâm, dùng chung bởi mọi file - xem từng file (sidebar.js,

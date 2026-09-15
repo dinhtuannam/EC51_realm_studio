@@ -21,7 +21,7 @@ process.on('unhandledRejection', (reason) => {
 
 app.listen(PORT, () => {
   const url = `http://localhost:${PORT}`;
-  logger.info(`EC51 Realm Studio dang chay tai ${url}`);
+  logger.info(`Realm Studio dang chay tai ${url}`);
   logger.info(`Log file: ${logger.filePath}`);
   const opener = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
   exec(`${opener} ${url}`, () => {});
